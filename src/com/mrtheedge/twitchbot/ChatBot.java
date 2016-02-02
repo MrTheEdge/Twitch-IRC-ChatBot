@@ -7,25 +7,24 @@ import org.jibble.pircbot.PircBot;
  */
 public class ChatBot extends PircBot {
 
-    private MainController mc;
+    private MainController mainController;
     private boolean _DEBUG = true;
-
     private String channel;
 
 
-    public ChatBot (MainController mc) {
-        this.mc = mc;
+    public ChatBot (MainController mainController){
+        this.mainController = mainController;
     }
 
-    public void setTwitchBotname(String botname) {
+    public void setBotname(String botname){
         setName(botname);
     }
 
-    public void setTwitchChannel(String channel) {
+    public void setChannel(String channel){
         this.channel = channel;
     }
 
-    public String getTwitchChannel(){
+    public String getChannel(){
         return this.channel;
     }
 
@@ -34,12 +33,12 @@ public class ChatBot extends PircBot {
         // Request membership to get mod information.
         sendRawLine("CAP REQ :twitch.tv/membership");
 
-        this.joinChannel(this.channel);
+        this.joinChannel(channel);
     }
 
     protected void onMessage(String channel, String sender, String login, String hostname, String message) {
 
-        mc.addInboundMessage( new ChatMessage(channel, sender, login, hostname, message) );
+        mainController.addInboundMessage( new ChatMessage(channel, sender, login, hostname, message) );
 
     }
 
@@ -49,14 +48,14 @@ public class ChatBot extends PircBot {
         String[] modeChange = mode.split(" ");
         if (modeChange.length == 3){
             if (modeChange[1].equals("+o")){
-                mc.addMod( modeChange[2].trim() );
+                mainController.addMod( modeChange[2].trim() );
             } else if (modeChange[1].equals("-o")){
-                mc.removeMod( modeChange[2].trim() );
+                mainController.removeMod( modeChange[2].trim() );
             }
         }
     }
 
-    protected void timeoutUser(String channel, String user){
+    protected void timeoutUser(String user){
         sendMessage(channel, ".timeout " + user + " 1");
         sendMessage(channel, ".w " + user + " Watch it! That was spam. To much can get you muted or banned!");
     }

@@ -1,5 +1,9 @@
 package com.mrtheedge.twitchbot;
 
+import org.jibble.pircbot.IrcException;
+import org.jibble.pircbot.NickAlreadyInUseException;
+
+import java.io.IOException;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -11,13 +15,15 @@ public class MainController implements Runnable {
     private LinkedBlockingQueue<ChatMessage> outboundQueue;
     private ChatBot chatBot;
     private MessageHandler messageHandler;
+    private UIController uiController;
+    private Thread mainControllerThread;
     private volatile boolean RUNNING = true;
 
     public MainController(MessageHandler mh){
         inboundQueue = new LinkedBlockingQueue<>();
         outboundQueue = new LinkedBlockingQueue<>();
-        this.messageHandler = mh;
-        this.messageHandler.setParentController(this);
+        messageHandler = mh;
+        messageHandler.setParentController(this);
     }
 
     public void addInboundMessage(ChatMessage cm){
@@ -28,7 +34,7 @@ public class MainController implements Runnable {
         }
     }
 
-    public void addOutboundMessage(ChatMessage cm){
+    public void addOutboundMessage(ChatMessage cm){ // TODO Get rid of outbound queue
         try{
             outboundQueue.put(cm);
         } catch (InterruptedException e){
@@ -42,7 +48,7 @@ public class MainController implements Runnable {
 
     public void setChatBot(ChatBot cb){ //TODO FIX THIS RIDICULOUS CODE
         this.chatBot = cb;
-        messageHandler.setAdmin(cb.getTwitchChannel().substring(1, cb.getTwitchChannel().length()));
+        //messageHandler.setAdmin(cb.getTwitchChannel().substring(1, cb.getTwitchChannel().length()));
     }
 
     public void addMod(String user){
@@ -77,7 +83,7 @@ public class MainController implements Runnable {
                 if (msg.getChannel() == null){ // Everything is null in a disconnect message.
                     shutdown();
                 } else {
-                    chatBot.timeoutUser(msg.getChannel(), msg.getSender());
+                    chatBot.timeoutUser(msg.getSender());
                 }
             } else {
                 addOutboundMessage(msg);
@@ -96,6 +102,36 @@ public class MainController implements Runnable {
 
     private void sendMessage(ChatMessage cm){
         chatBot.sendMessage(cm.getChannel(), cm.getMessage());
+    }
+
+    public void connectToIrc(String user, String oauth, String channel){
+
+        if (channel.startsWith("#")){
+            channel = channel.substring(1, channel.length());
+        }
+
+        try {
+            chatBot.setBotname(user);
+            chatBot.setChannel("#" + channel);
+            chatBot.connect("irc.twitch.tv", 6667, oauth);
+            chatBot.setVerbose(true);
+            messageHandler.setAdmin(channel);
+        } catch (IOException e) {
+            System.out.println("The server was not found. Exit application and try again.");
+            //e.printStackTrace();
+        } catch( NickAlreadyInUseException e){
+            System.out.println("Nickname is already in use. Try looking at the config file,");
+            System.out.println("making the appropriate changes, and restarting the program.");
+            //e.printStackTrace();
+        } catch (IrcException e) {
+            System.out.println("The server did not accept the connection. Make sure that the");
+            System.out.println("OAuth token is correct. Restart and try again.");
+            //e.printStackTrace();
+        }
+
+        mainControllerThread = new Thread(this);
+        mainControllerThread.start();
+
     }
 
     @Override

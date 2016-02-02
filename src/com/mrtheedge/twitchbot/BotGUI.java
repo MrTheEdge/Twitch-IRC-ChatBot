@@ -5,61 +5,42 @@ package com.mrtheedge.twitchbot;
  */
 
 import javafx.application.Application;
-import javafx.geometry.Pos;
-import javafx.scene.Parent;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
+
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class BotGUI extends Application {
 
-    private Parent createContent(){
-
-        VBox mainPane = new VBox();
-
-        TabPane tabPane = new TabPane();
-
-        Tab logTab = new Tab();
-        logTab.setText("Logs");
-        logTab.setContent(new Button("Example 1"));
-        logTab.setClosable(false);
-        tabPane.getTabs().add(logTab);
-
-        Tab settingsTab = new Tab();
-        settingsTab.setText("Settings");
-        settingsTab.setContent(new Button("Example 2"));
-        settingsTab.setClosable(false);
-        tabPane.getTabs().add(settingsTab);
-
-        HBox connButtonLayout = new HBox();
-        connButtonLayout.setAlignment(Pos.CENTER);
-        connButtonLayout.setSpacing(5);
-
-        Button connectBtn = new Button("Connect");
-        Button disconnectBtn = new Button("Disconnect");
-
-        connButtonLayout.getChildren().addAll(connectBtn, disconnectBtn);
-
-        mainPane.getChildren().addAll(tabPane, connButtonLayout);
-        VBox.setVgrow(tabPane, Priority.ALWAYS);
-
-        return mainPane;
-    }
+    private VBox mainPanel;
+    private UIController uiController;
 
     @Override
     public void start(Stage stage) {
 
-        Scene scene = new Scene( createContent(), 500, 500 );
+        try {
+            FXMLLoader fxmlLoader = new FXMLLoader(BotGUI.class.getResource("ui.fxml"));
+            mainPanel = (VBox) fxmlLoader.load();
+            uiController = (UIController) fxmlLoader.getController();
+        } catch (IOException e) {
+            //e.printStackTrace();
+            Logger.getLogger(BotGUI.class.getName()).log(Level.SEVERE, "Could not load ui.fxml to initialize window");
+        }
+
+        Scene scene = new Scene(mainPanel);
 
         stage.setScene(scene);
         stage.setTitle("Twitch Chat Bot");
+
+        stage.setOnCloseRequest( e -> {
+            uiController.botShutdown();
+            //TODO Do shutdown stuff here.
+        });
+
         stage.show();
 
     }

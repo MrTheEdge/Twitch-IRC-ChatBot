@@ -159,7 +159,7 @@ public class CommandHandler {
             if (commandExists(splitCom[1])) {
                 CustomCommand custCmd = customCmdMap.get(splitCom[1]);
                 Timer t = new Timer();
-                int seconds = Integer.parseInt(splitCom[2]);
+                int seconds = Integer.parseInt(splitCom[2]); // TODO ArrayOutOfBounds if no time given
                 int milli = seconds * 1000;
                 t.schedule(custCmd, milli, milli);
                 custCmd.setScheduledSender(cm.getSender());
