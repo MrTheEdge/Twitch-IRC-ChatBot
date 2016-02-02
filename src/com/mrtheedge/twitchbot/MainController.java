@@ -1,5 +1,7 @@
 package com.mrtheedge.twitchbot;
 
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
 import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.NickAlreadyInUseException;
 
@@ -49,6 +51,10 @@ public class MainController implements Runnable {
     public void setChatBot(ChatBot cb){ //TODO FIX THIS RIDICULOUS CODE
         this.chatBot = cb;
         //messageHandler.setAdmin(cb.getTwitchChannel().substring(1, cb.getTwitchChannel().length()));
+    }
+
+    public ObservableList<String> getActiveUsersList(){
+        return messageHandler.getActiveUsers();
     }
 
     public void addMod(String user){
@@ -104,30 +110,17 @@ public class MainController implements Runnable {
         chatBot.sendMessage(cm.getChannel(), cm.getMessage());
     }
 
-    public void connectToIrc(String user, String oauth, String channel){
+    public void connectToIrc(String user, String oauth, String channel) throws IOException, IrcException {
 
         if (channel.startsWith("#")){
             channel = channel.substring(1, channel.length());
         }
 
-        try {
-            chatBot.setBotname(user);
-            chatBot.setChannel("#" + channel);
-            chatBot.connect("irc.twitch.tv", 6667, oauth);
-            chatBot.setVerbose(true);
-            messageHandler.setAdmin(channel);
-        } catch (IOException e) {
-            System.out.println("The server was not found. Exit application and try again.");
-            //e.printStackTrace();
-        } catch( NickAlreadyInUseException e){
-            System.out.println("Nickname is already in use. Try looking at the config file,");
-            System.out.println("making the appropriate changes, and restarting the program.");
-            //e.printStackTrace();
-        } catch (IrcException e) {
-            System.out.println("The server did not accept the connection. Make sure that the");
-            System.out.println("OAuth token is correct. Restart and try again.");
-            //e.printStackTrace();
-        }
+        chatBot.setBotname(user);
+        chatBot.setChannel("#" + channel);
+        chatBot.connect("irc.twitch.tv", 6667, oauth);
+        chatBot.setVerbose(true);
+        messageHandler.setAdmin(channel);
 
         mainControllerThread = new Thread(this);
         mainControllerThread.start();

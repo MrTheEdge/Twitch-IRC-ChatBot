@@ -16,6 +16,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.*;
 import javafx.scene.image.Image;
 import javafx.scene.text.Text;
+import org.jibble.pircbot.IrcException;
+import org.jibble.pircbot.NickAlreadyInUseException;
 import sun.plugin2.message.Message;
 
 public class UIController {
@@ -72,7 +74,8 @@ public class UIController {
     @FXML
     private void banUser(ActionEvent event) {
         if (botIsConnected){
-
+            String user = usersListView.getSelectionModel().getSelectedItem();
+            chatBot.sendMessage(chatBot.getChannel(), ".ban " + user);
         }
     }
 
@@ -87,8 +90,23 @@ public class UIController {
                 return;
             } else {
                 System.out.println(botName + "\n" + oauth + "\n" + channel);
-                botController.connectToIrc(botName, oauth, channel);
-
+                try {
+                    botController.connectToIrc(botName, oauth, channel);
+                } catch (IOException e) {
+                    System.out.println("The server was not found. Exit application and try again.");
+                    //e.printStackTrace();
+                    return;
+                } catch(NickAlreadyInUseException e){
+                    System.out.println("Nickname is already in use. Try looking at the config file,");
+                    System.out.println("making the appropriate changes, and restarting the program.");
+                    //e.printStackTrace();
+                    return;
+                } catch (IrcException e) {
+                    System.out.println("The server did not accept the connection. Make sure that the");
+                    System.out.println("OAuth token is correct. Restart and try again.");
+                    //e.printStackTrace();
+                    return;
+                }
                 botIsConnected = true;
                 connectedImage.setImage(connectedImg);
                 connectedText.setText("Connected");
@@ -118,6 +136,7 @@ public class UIController {
     private void kickUser(ActionEvent event) {
         if (botIsConnected){
             String user = usersListView.getSelectionModel().getSelectedItem();
+            chatBot.sendMessage(chatBot.getChannel(), ".kick " + user);
         }
     }
 
@@ -241,6 +260,10 @@ public class UIController {
         botController = new MainController(messageHandler);
         chatBot = new ChatBot(botController);
         botController.setChatBot(chatBot);
+
+        usersListView.setItems(botController.getActiveUsersList());
+        usersListView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+        ;
 
     }
 }
