@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.text.Text?>
+
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="508.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.mrtheedge.twitchbot.UIController">
+   <children>
+      <TabPane prefHeight="326.0" prefWidth="508.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+        <tabs>
+          <Tab closable="false" text="Logs">
+               <content>
+                  <VBox prefHeight="200.0" prefWidth="100.0" spacing="5.0">
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </padding>
+                     <children>
+                        <TextArea fx:id="eventLogText" editable="false" prefHeight="284.0" prefWidth="498.0" VBox.vgrow="ALWAYS" />
+                        <HBox alignment="CENTER_LEFT" prefWidth="200.0" spacing="5.0">
+                           <children>
+                              <Button mnemonicParsing="false" onAction="#saveLogs" text="Save Logs" />
+                              <Text fx:id="logSaveOutput" strokeType="OUTSIDE" strokeWidth="0.0" />
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
+               </content>
+          </Tab>
+          <Tab closable="false" text="Chat Tools">
+               <content>
+                  <VBox prefHeight="200.0" prefWidth="100.0" spacing="5.0">
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </padding>
+                     <children>
+                        <Label text="Active Users" />
+                        <ListView fx:id="usersListView" prefHeight="200.0" prefWidth="306.0" VBox.vgrow="ALWAYS" />
+                        <HBox spacing="5.0">
+                           <children>
+                              <Spinner fx:id="chatToolTimeSpinner" editable="true" prefHeight="25.0" prefWidth="80.0" />
+                              <Button mnemonicParsing="false" onAction="#timeoutUser" text="Timeout" />
+                              <Button mnemonicParsing="false" onAction="#kickUser" text="Kick" />
+                              <Button mnemonicParsing="false" onAction="#banUser" text="Ban" />
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
+               </content>
+          </Tab>
+            <Tab closable="false" text="Commands">
+               <content>
+                  <VBox prefHeight="200.0" prefWidth="100.0" spacing="5.0">
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </padding>
+                     <children>
+                        <TableView fx:id="commandTableView" prefHeight="303.0" prefWidth="498.0" VBox.vgrow="ALWAYS">
+                          <columns>
+                            <TableColumn fx:id="cmdNameTableCol" editable="false" maxWidth="50.0" minWidth="110.0" prefWidth="50.0" text="Command Name" />
+                            <TableColumn fx:id="cmdLvlTableCol" editable="false" maxWidth="-Infinity" minWidth="25.0" prefWidth="-1.0" text="Lvl" />
+                              <TableColumn fx:id="cmdTextTableCol" editable="false" maxWidth="362.0" minWidth="150.0" prefWidth="362.0" resizable="false" text="Command Text" />
+                          </columns>
+                           <columnResizePolicy>
+                              <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                           </columnResizePolicy>
+                        </TableView>
+                        <HBox spacing="5.0">
+                           <children>
+                              <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#addCommand" text="Add" />
+                              <TextField fx:id="commandNameField" minHeight="-Infinity" minWidth="-Infinity" prefHeight="25.0" prefWidth="110.0" promptText="Command Name" />
+                              <ChoiceBox fx:id="userLevelDropdown" prefHeight="25.0" prefWidth="50.0" />
+                              <TextField fx:id="commandTextField" prefHeight="25.0" prefWidth="277.0" promptText="Command Text" HBox.hgrow="ALWAYS" />
+                           </children>
+                        </HBox>
+                        <Button mnemonicParsing="false" onAction="#deleteCommand" text="Delete" />
+                     </children>
+                  </VBox>
+               </content>
+            </Tab>
+            <Tab closable="false" text="Options">
+               <content>
+                  <VBox prefHeight="200.0" prefWidth="100.0" spacing="5.0">
+                     <children>
+                        <HBox prefWidth="200.0" spacing="5.0">
+                           <children>
+                              <Separator prefHeight="19.0" prefWidth="200.0" />
+                              <Label minWidth="-Infinity" prefHeight="19.0" text="Spam Protection Features">
+                                 <font>
+                                    <Font size="13.0" />
+                                 </font>
+                              </Label>
+                              <Separator prefHeight="19.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
+                           </children>
+                        </HBox>
+                        <GridPane>
+                          <columnConstraints>
+                            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                          </columnConstraints>
+                          <rowConstraints>
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                          </rowConstraints>
+                           <children>
+                              <CheckBox fx:id="wordLengthCheckBox" mnemonicParsing="false" onAction="#toggleSpamWordLength" selected="true" text="Word Length" GridPane.halignment="LEFT" GridPane.valignment="CENTER" />
+                              <CheckBox fx:id="consecCharsCheckBox" mnemonicParsing="false" onAction="#toggleSpamConsecChars" selected="true" text="Consecutive Characters" GridPane.columnIndex="1" GridPane.halignment="LEFT" GridPane.valignment="CENTER" />
+                              <CheckBox fx:id="wordRepetitionCheckBox" mnemonicParsing="false" onAction="#toggleSpamWordRepetition" selected="true" text="Word Repetition" GridPane.halignment="LEFT" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
+                              <CheckBox fx:id="capitalLettersCheckBox" mnemonicParsing="false" onAction="#toggleSpamCaps" selected="true" text="Capital Letters" GridPane.columnIndex="1" GridPane.halignment="LEFT" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
+                              <CheckBox fx:id="blockLinksCheckBox" disable="true" mnemonicParsing="false" text="Block Links" GridPane.rowIndex="2" />
+                           </children>
+                           <padding>
+                              <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                           </padding>
+                        </GridPane>
+                        <HBox prefWidth="200.0" spacing="5.0">
+                           <children>
+                              <Separator prefHeight="19.0" prefWidth="200.0" />
+                              <Label minWidth="-Infinity" prefHeight="19.0" text="Spam Protection Configuration">
+                                 <font>
+                                    <Font size="13.0" />
+                                 </font>
+                              </Label>
+                              <Separator prefHeight="19.0" prefWidth="200.0" />
+                           </children></HBox>
+                        <GridPane minHeight="-Infinity" minWidth="-Infinity">
+                          <columnConstraints>
+                            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                          </columnConstraints>
+                          <rowConstraints>
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                          </rowConstraints>
+                           <children>
+                              <Label text="Max Word Length" />
+                              <Label text="Max Repeated Words" GridPane.rowIndex="2" />
+                              <Label text="Max Consecutive Characters" GridPane.columnIndex="1" />
+                              <Label text="Percentage of Caps" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                              <Spinner fx:id="wordLengthSpinner" editable="true" prefHeight="25.0" prefWidth="100.0" GridPane.rowIndex="1" />
+                              <Spinner fx:id="repeatWordsSpinner" editable="true" prefHeight="25.0" prefWidth="100.0" GridPane.rowIndex="3" />
+                              <Spinner fx:id="consecCharSpinner" editable="true" prefWidth="100.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                              <Spinner fx:id="percentCapsSpinner" editable="true" prefWidth="100.0" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                              <Label text="Minimum Word Size for Caps Checking" GridPane.rowIndex="4" />
+                              <Spinner fx:id="wordSizeSpinner" editable="true" prefWidth="100.0" GridPane.rowIndex="5" />
+                           </children>
+                           <padding>
+                              <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                           </padding>
+                        </GridPane>
+                     </children>
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </padding>
+                  </VBox>
+               </content>
+            </Tab>
+            <Tab closable="false" text="Settings">
+               <content>
+                  <VBox alignment="TOP_CENTER" prefHeight="200.0" prefWidth="100.0" spacing="5.0">
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </padding>
+                     <children>
+                        <HBox spacing="5.0">
+                           <children>
+                              <Separator prefHeight="17.0" HBox.hgrow="ALWAYS" />
+                              <Label maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" text="Bot Login Information" />
+                              <Separator prefHeight="17.0" HBox.hgrow="ALWAYS" />
+                           </children>
+                        </HBox>
+                        <GridPane alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="303.0">
+                          <columnConstraints>
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="243.0" minWidth="10.0" prefWidth="72.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="426.0" minWidth="10.0" prefWidth="231.0" />
+                          </columnConstraints>
+                          <rowConstraints>
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                          </rowConstraints>
+                           <children>
+                              <Label text="Bot Name" />
+                              <Label text="OAuth Key" GridPane.rowIndex="1" />
+                              <Label text="Channel" GridPane.rowIndex="2" />
+                              <TextField fx:id="botNameField" GridPane.columnIndex="1" />
+                              <TextField fx:id="oAuthKeyField" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                              <TextField fx:id="channelField" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                              <HBox alignment="CENTER_LEFT" spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                                 <children>
+                                    <Button mnemonicParsing="false" onAction="#botConnect" text="Connect" />
+                                    <Button mnemonicParsing="false" onAction="#botDisconnect" text="Disconnect" />
+                                 </children>
+                              </HBox>
+                           </children>
+                        </GridPane>
+                        <HBox alignment="CENTER" prefWidth="200.0" spacing="5.0">
+                           <children>
+                              <Separator prefHeight="17.0" HBox.hgrow="ALWAYS" />
+                              <Label maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" text="About" />
+                              <Separator prefHeight="17.0" HBox.hgrow="ALWAYS" />
+                           </children></HBox>
+                        <Text fx:id="aboutText" strokeType="OUTSIDE" strokeWidth="0.0" text="Twitch Bot by E.J. Schroeder" />
+                        <Text fx:id="versionText" strokeType="OUTSIDE" strokeWidth="0.0" text="V 1.0" />
+                        <Hyperlink fx:id="sourceLink" text="View Source on GitHub" />
+                        <Hyperlink fx:id="oAuthKeyLink" text="Generating an OAuth Key" />
+                     </children>
+                  </VBox>
+               </content>
+            </Tab>
+        </tabs>
+      </TabPane>
+      <Separator prefWidth="200.0" />
+      <HBox alignment="CENTER_LEFT" spacing="5.0">
+         <children>
+            <ImageView fx:id="connectedImage" fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true" />
+            <Text fx:id="connectedText" strokeType="INSIDE" strokeWidth="0.0" text="Not Connected" wrappingWidth="132.13671875">
+               <font>
+                  <Font size="14.0" />
+               </font>
+            </Text>
+         </children>
+         <padding>
+            <Insets bottom="5.0" left="5.0" />
+         </padding>
+      </HBox>
+   </children>
+</VBox>
