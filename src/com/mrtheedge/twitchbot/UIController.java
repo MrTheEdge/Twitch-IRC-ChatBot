@@ -8,6 +8,11 @@ import java.net.URL;
 import java.util.Map;
 import java.util.ResourceBundle;
 
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.MapChangeListener;
+import javafx.collections.ObservableMap;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -254,6 +259,7 @@ public class UIController {
             }
         });
 
+        // TODO Make all this ugliness more modular. This is atrocious.
         spamHandler = new SpamHandler();
         cmdHandler = new CommandHandler();
         messageHandler = new MessageHandler(cmdHandler, spamHandler);
@@ -263,7 +269,21 @@ public class UIController {
 
         usersListView.setItems(botController.getActiveUsersList());
         usersListView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-        ;
+
+        cmdNameTableCol.setCellValueFactory( c -> new SimpleStringProperty(c.getValue().getValue().getName()));
+
+        cmdLvlTableCol.setCellValueFactory( c -> new SimpleObjectProperty<Character>(c.getValue().getValue().getReqLevel()));
+
+        cmdTextTableCol.setCellValueFactory( c -> new SimpleStringProperty(c.getValue().getValue().getResponse()));
+
+
+        ObservableMap<String, CustomCommand> commandMap = messageHandler.getObservableCommands();
+
+        commandMap.addListener((MapChangeListener.Change<? extends String, ? extends CustomCommand> change) -> {
+            commandTableView.setItems(FXCollections.observableArrayList(commandMap.entrySet()));
+        });
+
+        commandTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
 
     }
 }

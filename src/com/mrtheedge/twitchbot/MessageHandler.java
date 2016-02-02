@@ -2,9 +2,11 @@ package com.mrtheedge.twitchbot;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableMap;
 import javafx.collections.transformation.SortedList;
 
 import java.util.HashSet;
+import java.util.Map;
 
 /**
  * Created by E.J. Schroeder on 1/7/2016.
@@ -45,6 +47,10 @@ public class MessageHandler {
 
     public ObservableList<String> getActiveUsers(){
         return sortedActiveUsers;
+    }
+
+    public ObservableMap<String, CustomCommand> getObservableCommands(){
+        return commandHandler.getObservableCommands();
     }
 
     public void shutdown(){

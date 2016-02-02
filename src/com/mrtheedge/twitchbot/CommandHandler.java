@@ -1,5 +1,9 @@
 package com.mrtheedge.twitchbot;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.ObservableMap;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,14 +20,20 @@ public class CommandHandler {
 
     private ArrayList<String> modList;
     private String channelAdmin;
-    private HashMap<String, CustomCommand> customCmdMap;
+    private ObservableMap<String, CustomCommand> customCmdMap;
+    //ObservableList<Map.Entry<String, CustomCommand>> observableCommands;
     private HashMap<String, Timer> scheduledCommands;
     private MessageHandler parentMessageHandler;
 
     public CommandHandler() {
-        customCmdMap = new HashMap<>();
+        customCmdMap = FXCollections.observableHashMap();
         modList = new ArrayList<>();
         scheduledCommands = new HashMap<>();
+        //observableCommands = FXCollections.observableArrayList(customCmdMap.entrySet());
+    }
+
+    public ObservableMap<String, CustomCommand> getObservableCommands(){
+        return customCmdMap;
     }
     /*
         Base Commands: add, del, disconnect

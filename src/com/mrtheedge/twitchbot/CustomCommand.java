@@ -138,6 +138,8 @@ public class CustomCommand extends TimerTask {
         return userLevel;
     }
 
+    public String getResponse() { return response; }
+
     public int getUseCount(){
         return useCount;
     }
