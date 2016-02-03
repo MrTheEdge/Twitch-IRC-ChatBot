@@ -49,10 +49,6 @@ public class MessageHandler {
         return sortedActiveUsers;
     }
 
-    public ObservableMap<String, CustomCommand> getObservableCommands(){
-        return commandHandler.getObservableCommands();
-    }
-
     public void shutdown(){
         commandHandler.stopAllCommands();
     }

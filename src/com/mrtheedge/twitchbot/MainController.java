@@ -1,11 +1,10 @@
 package com.mrtheedge.twitchbot;
 
-import javafx.collections.ObservableList;
-import javafx.collections.transformation.SortedList;
 import org.jibble.pircbot.IrcException;
-import org.jibble.pircbot.NickAlreadyInUseException;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -15,6 +14,7 @@ public class MainController implements Runnable {
 
     private LinkedBlockingQueue<ChatMessage> inboundQueue;
     private LinkedBlockingQueue<ChatMessage> outboundQueue;
+    private List<ChatEventListener> _LISTENERS = new ArrayList<>();
     private ChatBot chatBot;
     private MessageHandler messageHandler;
     private UIController uiController;
@@ -26,6 +26,20 @@ public class MainController implements Runnable {
         outboundQueue = new LinkedBlockingQueue<>();
         messageHandler = mh;
         messageHandler.setParentController(this);
+    }
+
+    public synchronized void addListener(ChatEventListener listener){
+        _LISTENERS.add(listener);
+    }
+
+    public synchronized void removeListener(ChatEventListener listener){
+        _LISTENERS.remove(listener);
+    }
+
+    private synchronized void fireEvent(String message){
+        ChatEvent e = new ChatEvent(this, message);
+        for(ChatEventListener listener : _LISTENERS)
+            listener.handleChatEvent(e);
     }
 
     public void addInboundMessage(ChatMessage cm){
@@ -48,25 +62,23 @@ public class MainController implements Runnable {
         RUNNING = false;
     }
 
-    public void setChatBot(ChatBot cb){ //TODO FIX THIS RIDICULOUS CODE
+    public void setChatBot(ChatBot cb){
         this.chatBot = cb;
-        //messageHandler.setAdmin(cb.getTwitchChannel().substring(1, cb.getTwitchChannel().length()));
-    }
-
-    public ObservableList<String> getActiveUsersList(){
-        return messageHandler.getActiveUsers();
     }
 
     public void addMod(String user){
         messageHandler.addMod(user);
+        fireEvent( user + " was added as a mod");
     }
 
     public void removeMod(String user){
         messageHandler.removeMod(user);
+        fireEvent( user + " was removed as a mod");
     }
 
     public void shutdown(){
 
+        fireEvent("ChatBot disconnecting from irc.twitch.tv down");
         messageHandler.shutdown();
 
         this.RUNNING = false;
@@ -90,6 +102,7 @@ public class MainController implements Runnable {
                     shutdown();
                 } else {
                     chatBot.timeoutUser(msg.getSender());
+                    fireEvent( msg.getSender() + "'s message was deleted for spam.");
                 }
             } else {
                 addOutboundMessage(msg);
@@ -110,20 +123,28 @@ public class MainController implements Runnable {
         chatBot.sendMessage(cm.getChannel(), cm.getMessage());
     }
 
-    public void connectToIrc(String user, String oauth, String channel) throws IOException, IrcException {
-
+    public void connectToIrc(String user, String oauth, String channel) {
+        fireEvent("Starting ChatBot...");
         if (channel.startsWith("#")){
             channel = channel.substring(1, channel.length());
         }
 
         chatBot.setBotname(user);
         chatBot.setChannel("#" + channel);
-        chatBot.connect("irc.twitch.tv", 6667, oauth);
-        chatBot.setVerbose(true);
+        chatBot.setVerbose(true); // TODO Debug flag
+        try {
+            chatBot.connect("irc.twitch.tv", 6667, oauth);
+        } catch (IOException e) {
+            fireEvent("Unable to connect to irc.twitch.tv.");
+        } catch (IrcException e) {
+            fireEvent("Error while connecting to irc.twitch.tv, username or password may be incorrect");
+            e.printStackTrace();
+        }
         messageHandler.setAdmin(channel);
 
         mainControllerThread = new Thread(this);
         mainControllerThread.start();
+        fireEvent( "ChatBot connected to twitch.tv on channel #" + channel);
 
     }
 

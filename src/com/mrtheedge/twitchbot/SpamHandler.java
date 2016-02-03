@@ -141,7 +141,14 @@ public class SpamHandler {
     }
 
     public void setPercentageCaps(double percentage_caps) {
+        if (percentage_caps > 1){
+            percentage_caps = percentage_caps / 100;
+        }
         this.PERCENTAGE_CAPS = percentage_caps;
+    }
+
+    public void setMinWordLength(int min_word_length){
+        this.MIN_WORD_LENGTH = min_word_length;
     }
 
     public double getPercentageCaps() {

@@ -5,11 +5,14 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.EventObject;
 import java.util.Map;
 import java.util.ResourceBundle;
 
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableMap;
@@ -23,7 +26,10 @@ import javafx.scene.image.Image;
 import javafx.scene.text.Text;
 import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.NickAlreadyInUseException;
-import sun.plugin2.message.Message;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeFieldType;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 public class UIController {
 
@@ -45,7 +51,7 @@ public class UIController {
     @FXML private CheckBox wordRepetitionCheckBox;
     @FXML private CheckBox capitalLettersCheckBox;
     @FXML private CheckBox blockLinksCheckBox;
-    @FXML private Spinner<Integer> wordLengthSpinner; // Initialize
+    @FXML private Spinner<Integer> wordLengthSpinner; // Initialize // TODO Create listeners for these
     @FXML private Spinner<Integer> repeatWordsSpinner; // Initialize
     @FXML private Spinner<Integer> consecCharSpinner; // Initialize
     @FXML private Spinner<Integer> percentCapsSpinner; // Initialize
@@ -70,6 +76,7 @@ public class UIController {
     private CommandHandler cmdHandler;
     private MessageHandler messageHandler;
 
+    DateTimeFormatter timeFormat = DateTimeFormat.shortDateTime();
 
     @FXML
     private void addCommand(ActionEvent event) {
@@ -94,27 +101,15 @@ public class UIController {
             if (botName.equals("") || oauth.equals("") || channel.equals("") ){
                 return;
             } else {
-                System.out.println(botName + "\n" + oauth + "\n" + channel);
-                try {
-                    botController.connectToIrc(botName, oauth, channel);
-                } catch (IOException e) {
-                    System.out.println("The server was not found. Exit application and try again.");
-                    //e.printStackTrace();
-                    return;
-                } catch(NickAlreadyInUseException e){
-                    System.out.println("Nickname is already in use. Try looking at the config file,");
-                    System.out.println("making the appropriate changes, and restarting the program.");
-                    //e.printStackTrace();
-                    return;
-                } catch (IrcException e) {
-                    System.out.println("The server did not accept the connection. Make sure that the");
-                    System.out.println("OAuth token is correct. Restart and try again.");
-                    //e.printStackTrace();
-                    return;
+                //System.out.println(botName + "\n" + oauth + "\n" + channel);
+
+                botController.connectToIrc(botName, oauth, channel);
+
+                if (chatBot.isConnected()) {
+                    botIsConnected = true;
+                    connectedImage.setImage(connectedImg);
+                    connectedText.setText("Connected");
                 }
-                botIsConnected = true;
-                connectedImage.setImage(connectedImg);
-                connectedText.setText("Connected");
             }
 
 
@@ -150,39 +145,57 @@ public class UIController {
         String text = eventLogText.getText();
         if ( !text.equals("") ){
             // TODO Do stuff here
+            LogWriter.writeLogs(text);
+            eventLogText.setText("");
         }
-        eventLogText.setText("");
+
     }
 
     @FXML
     private void timeoutUser(ActionEvent event) {
         if (botIsConnected){
-
+            String user = usersListView.getSelectionModel().getSelectedItem();
+            int time = chatToolTimeSpinner.getValue();
+            chatBot.sendMessage(chatBot.getChannel(), ".timeout " + user + " " + time);
         }
     }
 
     @FXML
     private void toggleSpamCaps(ActionEvent event) {
-
+        CheckBox source = (CheckBox)event.getSource();
+        boolean bool = source.isSelected() ? true : false;
+        spamHandler.setCheckPercentageCaps(bool);
     }
 
     @FXML
     private void toggleSpamConsecChars(ActionEvent event) {
-
+        CheckBox source = (CheckBox)event.getSource();
+        boolean bool = source.isSelected() ? true : false;
+        spamHandler.setCheckConsecChars(bool);
     }
 
     @FXML
     private void toggleSpamWordLength(ActionEvent event) {
-
+        CheckBox source = (CheckBox)event.getSource();
+        boolean bool = source.isSelected() ? true : false;
+        spamHandler.setCheckWordLength(bool);
     }
 
     @FXML
     private void toggleSpamWordRepetition(ActionEvent event) {
-
+        CheckBox source = (CheckBox)event.getSource();
+        boolean bool = source.isSelected() ? true : false;
+        spamHandler.setCheckWordRepetition(bool);
     }
 
     public void botShutdown(){
         botDisconnect(null);
+    }
+
+    private void addEventToLog(String message){
+        // Create a new timestamp and add it to the log with message
+        String time = "[" + timeFormat.print(DateTime.now()) + "] ";
+        eventLogText.appendText(time + message + "\n");
     }
 
     @FXML
@@ -226,7 +239,7 @@ public class UIController {
         repeatWordsSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(2, 20, 1));
         consecCharSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 50, 1));
         percentCapsSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100, 1));
-        wordSizeSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 1, 10));
+        wordSizeSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 1, 1));
 
         connectedImg = new Image(getClass().getResource("/connected.png").toString());
         disconnectedImg = new Image(getClass().getResource("/disconnected.png").toString());
@@ -267,23 +280,47 @@ public class UIController {
         chatBot = new ChatBot(botController);
         botController.setChatBot(chatBot);
 
-        usersListView.setItems(botController.getActiveUsersList());
+        botController.addListener( e -> {
+            addEventToLog(e.getMessage());
+        });
+
+        // Use method from message handler
+        usersListView.setItems(messageHandler.getActiveUsers());
         usersListView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
 
         cmdNameTableCol.setCellValueFactory( c -> new SimpleStringProperty(c.getValue().getValue().getName()));
 
-        cmdLvlTableCol.setCellValueFactory( c -> new SimpleObjectProperty<Character>(c.getValue().getValue().getReqLevel()));
+        cmdLvlTableCol.setCellValueFactory( c -> new SimpleObjectProperty<Character>(Character.toUpperCase(c.getValue().getValue().getReqLevel())));
 
         cmdTextTableCol.setCellValueFactory( c -> new SimpleStringProperty(c.getValue().getValue().getResponse()));
 
+        // Use method from commandHandler
+        ObservableMap<String, CustomCommand> commandMap = cmdHandler.getObservableCommands();
 
-        ObservableMap<String, CustomCommand> commandMap = messageHandler.getObservableCommands();
-
+        // Listener to detect additions and deletions add/remove them from table
         commandMap.addListener((MapChangeListener.Change<? extends String, ? extends CustomCommand> change) -> {
             commandTableView.setItems(FXCollections.observableArrayList(commandMap.entrySet()));
         });
 
         commandTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+
+        repeatWordsSpinner.valueProperty().addListener((observable, oldValue, newValue) -> {
+            spamHandler.setWordRepetition(newValue);
+        });
+        wordLengthSpinner.valueProperty().addListener((observable, oldValue, newValue) -> {
+            spamHandler.setWordLength(newValue);
+        });
+        consecCharSpinner.valueProperty().addListener((observable, oldValue, newValue) -> {
+            spamHandler.setConsecChars(newValue);
+        });
+        percentCapsSpinner.valueProperty().addListener((observable, oldValue, newValue) -> {
+            spamHandler.setPercentageCaps(newValue);
+        });
+        wordSizeSpinner.valueProperty().addListener((observable, oldValue, newValue) -> {
+            spamHandler.setMinWordLength(newValue);
+        });
+
+
 
     }
 }

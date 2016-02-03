@@ -116,7 +116,7 @@ public class CommandHandler {
 
     private ChatMessage parseAddCommand(ChatMessage cm){
 
-        if (cm.getSender().equals(channelAdmin)){
+        if (cm.getSender().equals(channelAdmin)){ // TODO Change syntax of 'userlevel=' to -M -A -D
             try {
                 CustomCommand custom = new CustomCommand(cm.getMessage().substring(5, cm.getMessage().length()));
                 //System.out.println(custom.getName());
@@ -192,7 +192,7 @@ public class CommandHandler {
         if (reqLvl == Constants.ADMIN){
             return sender.equals(channelAdmin);
         } else if (reqLvl == Constants.MODERATOR) {
-            return modList.contains(sender);
+            return modList.contains(sender) || sender.equals(channelAdmin);
         } else
             return (reqLvl == Constants.DEFAULT); // Should be default, only level left is 'd'
     }
