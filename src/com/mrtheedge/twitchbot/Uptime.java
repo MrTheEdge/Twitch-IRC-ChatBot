@@ -48,6 +48,7 @@ public class Uptime {
 
             Object obj = parser.parse(file);
             JSONObject jobj = (JSONObject)obj;
+            System.out.println(jobj);
             if ( jobj.get("stream") == null ){
                 return "[Stream is not live]";
             } else {

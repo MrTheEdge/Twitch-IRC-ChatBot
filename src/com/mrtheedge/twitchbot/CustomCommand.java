@@ -54,8 +54,12 @@ public class CustomCommand extends TimerTask {
 
     public ChatMessage callCommand(String sender, String target, String channel){
 
-        if ( this.requiresTargetParam() && target == null ){
-            return new ChatMessage(channel, null, null, null, "This command requires a target user parameter.");
+        if (channel.startsWith("#")){
+            channel = channel.substring(1, channel.length());
+        }
+
+        if ( this.requiresTargetParam() && target == null ){ // TODO FIX THIS ATROCIOUS CODE
+            return new ChatMessage("#" + channel, null, null, null, "This command requires a target user parameter.");
         }
 
         this.useCount++;
@@ -66,7 +70,7 @@ public class CustomCommand extends TimerTask {
         modifiedResponse = modifiedResponse.replaceAll(Constants.uptimeVar, Uptime.getUptime(channel));
         modifiedResponse = modifiedResponse.replaceAll(Constants.useCountVar, String.valueOf(useCount));
 
-        return new ChatMessage(channel, null, null, null, modifiedResponse);
+        return new ChatMessage("#" + channel, null, null, null, modifiedResponse);
     }
 
     public void setScheduledChannel(String scheduledChannel) {

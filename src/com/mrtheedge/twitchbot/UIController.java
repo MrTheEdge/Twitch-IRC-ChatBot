@@ -1,11 +1,10 @@
 package com.mrtheedge.twitchbot;
 
-import java.awt.*;
+import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.EventObject;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -13,9 +12,8 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.FXCollections;
-import javafx.collections.MapChangeListener;
-import javafx.collections.ObservableMap;
+import javafx.collections.*;
+import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -39,10 +37,10 @@ public class UIController {
     @FXML private Text logSaveOutput;
     @FXML private ListView<String> usersListView;
     @FXML private Spinner<Integer> chatToolTimeSpinner; // Initialize
-    @FXML private TableView<Map.Entry<String, CustomCommand>> commandTableView;
-    @FXML private TableColumn<Map.Entry<String, CustomCommand>, String> cmdNameTableCol;
-    @FXML private TableColumn<Map.Entry<String, CustomCommand>, Character> cmdLvlTableCol;
-    @FXML private TableColumn<Map.Entry<String, CustomCommand>, String> cmdTextTableCol;
+    @FXML private TableView<CustomCommand> commandTableView;
+    @FXML private TableColumn<CustomCommand, String> cmdNameTableCol;
+    @FXML private TableColumn<CustomCommand, Character> cmdLvlTableCol;
+    @FXML private TableColumn<CustomCommand, String> cmdTextTableCol;
     @FXML private TextField commandNameField;
     @FXML private ChoiceBox<Character> userLevelDropdown; // Initialize
     @FXML private TextField commandTextField;
@@ -75,6 +73,11 @@ public class UIController {
     private SpamHandler spamHandler;
     private CommandHandler cmdHandler;
     private MessageHandler messageHandler;
+
+    private ObservableList<String> activeUsers;
+    private SortedList<String> sortedActiveUsers;
+
+    private ObservableList<CustomCommand> commandList;
 
     DateTimeFormatter timeFormat = DateTimeFormat.shortDateTime();
 
@@ -235,11 +238,11 @@ public class UIController {
         userLevelDropdown.getSelectionModel().selectFirst();
 
         chatToolTimeSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 7200, 1, 10));
-        wordLengthSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 1));
-        repeatWordsSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(2, 20, 1));
-        consecCharSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 50, 1));
-        percentCapsSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100, 1));
-        wordSizeSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 1, 1));
+        wordLengthSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 30, 15));
+        repeatWordsSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(2, 20, 3));
+        consecCharSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 50, 10));
+        percentCapsSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100, 75));
+        wordSizeSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 5));
 
         connectedImg = new Image(getClass().getResource("/connected.png").toString());
         disconnectedImg = new Image(getClass().getResource("/disconnected.png").toString());
@@ -280,29 +283,36 @@ public class UIController {
         chatBot = new ChatBot(botController);
         botController.setChatBot(chatBot);
 
+        activeUsers = FXCollections.observableArrayList();
+        sortedActiveUsers = new SortedList<>(activeUsers);
+        usersListView.setItems(sortedActiveUsers);
+        usersListView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+
+        messageHandler.addListener(e -> {
+            activeUsers.add(e.getUser());
+        });
+
         botController.addListener( e -> {
             addEventToLog(e.getMessage());
         });
 
-        // Use method from message handler
-        usersListView.setItems(messageHandler.getActiveUsers());
-        usersListView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+        commandList = FXCollections.observableArrayList();
 
-        cmdNameTableCol.setCellValueFactory( c -> new SimpleStringProperty(c.getValue().getValue().getName()));
-
-        cmdLvlTableCol.setCellValueFactory( c -> new SimpleObjectProperty<Character>(Character.toUpperCase(c.getValue().getValue().getReqLevel())));
-
-        cmdTextTableCol.setCellValueFactory( c -> new SimpleStringProperty(c.getValue().getValue().getResponse()));
-
-        // Use method from commandHandler
-        ObservableMap<String, CustomCommand> commandMap = cmdHandler.getObservableCommands();
-
-        // Listener to detect additions and deletions add/remove them from table
-        commandMap.addListener((MapChangeListener.Change<? extends String, ? extends CustomCommand> change) -> {
-            commandTableView.setItems(FXCollections.observableArrayList(commandMap.entrySet()));
+        cmdHandler.addListener(e -> {
+            if (e.getType() == CommandEvent.ADD){
+                commandList.add(e.getCommand());
+            } else {
+                commandList.remove(e.getCommand());
+            }
         });
 
+        // Value factories for the data from each CustomCommand. Name/User Level/Response
+        cmdNameTableCol.setCellValueFactory( c -> new SimpleStringProperty(c.getValue().getName()) );
+        cmdLvlTableCol.setCellValueFactory( c -> new SimpleObjectProperty<Character>( Character.toUpperCase(c.getValue().getReqLevel()) ));
+        cmdTextTableCol.setCellValueFactory( c -> new SimpleStringProperty(c.getValue().getResponse()));
+        commandTableView.setItems(commandList);
         commandTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+
 
         repeatWordsSpinner.valueProperty().addListener((observable, oldValue, newValue) -> {
             spamHandler.setWordRepetition(newValue);

@@ -20,21 +20,19 @@ public class CommandHandler {
 
     private ArrayList<String> modList;
     private String channelAdmin;
-    private ObservableMap<String, CustomCommand> customCmdMap;
+    private HashMap<String, CustomCommand> customCmdMap;
     //ObservableList<Map.Entry<String, CustomCommand>> observableCommands;
     private HashMap<String, Timer> scheduledCommands;
     private MessageHandler parentMessageHandler;
+    private ArrayList<CommandEventListener> _LISTENERS = new ArrayList<>();
 
     public CommandHandler() {
-        customCmdMap = FXCollections.observableHashMap();
+        customCmdMap = new HashMap<>();
         modList = new ArrayList<>();
         scheduledCommands = new HashMap<>();
         //observableCommands = FXCollections.observableArrayList(customCmdMap.entrySet());
     }
 
-    public ObservableMap<String, CustomCommand> getObservableCommands(){
-        return customCmdMap;
-    }
     /*
         Base Commands: add, del, disconnect
         Parse the command
@@ -122,6 +120,7 @@ public class CommandHandler {
                 //System.out.println(custom.getName());
                 custom.setParentHandler(this);
                 addCommand(custom);
+                fireCommandEvent(custom, CommandEvent.ADD);
                 return new ChatMessage(cm.getChannel(), null, null, null, "Command added.");
             } catch (IllegalArgumentException ex){
                 return new ChatMessage(cm.getChannel(), null, null, null, "Error adding command.");
@@ -136,6 +135,7 @@ public class CommandHandler {
         String[] cmdArray = cm.getMessage().split(" ");
         if (cm.getSender().equals(channelAdmin)) {
             if (commandExists(cmdArray[1])) {
+                fireCommandEvent(customCmdMap.get(cmdArray[1]), CommandEvent.DELETE);
                 delCommand(cmdArray[1]);
                 return new ChatMessage(cm.getChannel(), null, null, null, "Command deleted.");
             } else {
@@ -195,6 +195,20 @@ public class CommandHandler {
             return modList.contains(sender) || sender.equals(channelAdmin);
         } else
             return (reqLvl == Constants.DEFAULT); // Should be default, only level left is 'd'
+    }
+
+    public void addListener(CommandEventListener evListener){
+        _LISTENERS.add(evListener);
+    }
+
+    public void removeListener(CommandEventListener eventListener){
+        _LISTENERS.remove(eventListener);
+    }
+
+    public void fireCommandEvent(CustomCommand c, int type){
+        for (CommandEventListener ev : _LISTENERS){
+            ev.handle(new CommandEvent(this, c, type));
+        }
     }
 
     private boolean commandExists(String cmdName){
