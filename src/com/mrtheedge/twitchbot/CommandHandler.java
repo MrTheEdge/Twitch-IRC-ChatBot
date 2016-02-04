@@ -14,14 +14,12 @@ import java.util.Timer;
  */
 public class CommandHandler {
 
-    // TODO Add shutdown hook method so that all running timers are cancelled.
     // TODO Add way to show each commands layout
     // TODO Add help commands
 
     private ArrayList<String> modList;
     private String channelAdmin;
     private HashMap<String, CustomCommand> customCmdMap;
-    //ObservableList<Map.Entry<String, CustomCommand>> observableCommands;
     private HashMap<String, Timer> scheduledCommands;
     private MessageHandler parentMessageHandler;
     private ArrayList<CommandEventListener> _LISTENERS = new ArrayList<>();
@@ -30,7 +28,6 @@ public class CommandHandler {
         customCmdMap = new HashMap<>();
         modList = new ArrayList<>();
         scheduledCommands = new HashMap<>();
-        //observableCommands = FXCollections.observableArrayList(customCmdMap.entrySet());
     }
 
     /*
@@ -43,7 +40,6 @@ public class CommandHandler {
             disconnect - send keyword back to ChatBot
      */
     public ChatMessage parse(ChatMessage chatMessage){
-        // TODO Use a switch, and preferably create classes for the built in commands
         /*
             Split the command
             Determine which command it is
@@ -59,7 +55,7 @@ public class CommandHandler {
         } else {
             prefix = chatMessage.getMessage().substring(1, prefixIndex);
         }
-        System.out.println(prefix);
+        //System.out.println(prefix);
 
         switch(prefix){
             case Constants.ADD_PREFIX:
@@ -73,9 +69,6 @@ public class CommandHandler {
 
             case Constants.STOP_PREFIX:
                 return stopScheduledCommand(chatMessage);
-
-            case Constants.DISCONNECT:
-                return parseDisconnectCommand(chatMessage);
 
             default:
                 if( commandExists(prefix) ) {
@@ -95,15 +88,6 @@ public class CommandHandler {
         }
     }
 
-    private ChatMessage parseDisconnectCommand(ChatMessage cm) {
-        String admin = cm.getChannel().substring(1, cm.getChannel().length());
-        if (cm.getSender().equals(admin)){
-            return new ChatMessage(null, null, null, null, null);
-        } else {
-            return new ChatMessage(cm.getChannel(), cm.getSender(), null, null, "You don't have permission to disconnect me!");
-        }
-    }
-
     public void setParentMessageHandler(MessageHandler mh){
         this.parentMessageHandler = mh;
     }
@@ -114,13 +98,12 @@ public class CommandHandler {
 
     private ChatMessage parseAddCommand(ChatMessage cm){
 
-        if (cm.getSender().equals(channelAdmin)){ // TODO Change syntax of 'userlevel=' to -M -A -D
+        if (userHasPermission(cm.getSender(), Constants.MODERATOR)){ // TODO Change syntax of 'userlevel=' to -M -A -D
             try {
                 CustomCommand custom = new CustomCommand(cm.getMessage().substring(5, cm.getMessage().length()));
                 //System.out.println(custom.getName());
                 custom.setParentHandler(this);
                 addCommand(custom);
-                fireCommandEvent(custom, CommandEvent.ADD);
                 return new ChatMessage(cm.getChannel(), null, null, null, "Command added.");
             } catch (IllegalArgumentException ex){
                 return new ChatMessage(cm.getChannel(), null, null, null, "Error adding command.");
@@ -133,9 +116,9 @@ public class CommandHandler {
 
     private ChatMessage parseDelCommand(ChatMessage cm){
         String[] cmdArray = cm.getMessage().split(" ");
-        if (cm.getSender().equals(channelAdmin)) {
+        if (userHasPermission(cm.getSender(), Constants.MODERATOR)) {
             if (commandExists(cmdArray[1])) {
-                fireCommandEvent(customCmdMap.get(cmdArray[1]), CommandEvent.DELETE);
+
                 delCommand(cmdArray[1]);
                 return new ChatMessage(cm.getChannel(), null, null, null, "Command deleted.");
             } else {
@@ -162,7 +145,7 @@ public class CommandHandler {
         }
     }
 
-    private ChatMessage parseScheduleCommand(ChatMessage cm) {
+    private ChatMessage parseScheduleCommand(ChatMessage cm) { // TODO Don't accept commands that need target parameter
 
         if (userHasPermission(cm.getSender(), Constants.ADMIN)){
             String[] splitCom = cm.getMessage().split(" "); // TODO Fix this... Check if command is already running
@@ -215,11 +198,13 @@ public class CommandHandler {
         return customCmdMap.containsKey(cmdName);
     }
 
-    private void addCommand(CustomCommand command){
+    public void addCommand(CustomCommand command){
         customCmdMap.put(command.getName(), command);
+        fireCommandEvent(command, CommandEvent.ADD);
     }
 
-    private void delCommand(String cmdName){
+    public void delCommand(String cmdName){
+        fireCommandEvent(customCmdMap.get(cmdName), CommandEvent.DELETE);
         customCmdMap.remove(cmdName);
     }
 

@@ -5,6 +5,7 @@ import org.jibble.pircbot.IrcException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -89,33 +90,26 @@ public class MainController implements Runnable {
 
     private void handleInboundMessages(){
         //System.out.println("Handling inbound messages.");
+        Optional result;
         ChatMessage msg;
         while(!inboundQueue.isEmpty()){
             msg = inboundQueue.remove();
-            msg = messageHandler.handle(msg);
+            result = messageHandler.handle(msg);
 
-            if (msg == null)
-                return;
+            if (result.isPresent()){
 
-            if (msg.getMessage() == null){ // Null message means it was spam, or disconnect
-                if (msg.getChannel() == null){ // Everything is null in a disconnect message.
-                    shutdown();
-                } else {
-                    chatBot.timeoutUser(msg.getSender());
+                msg = (ChatMessage)result.get();
+                if (msg.getMessage() == null){ // Null message means it was spam
+                    chatBot.timeoutUser( msg.getSender() );
                     fireEvent( msg.getSender() + "'s message was deleted for spam.");
+                } else {
+                    sendMessage(msg);
                 }
-            } else {
-                addOutboundMessage(msg);
-            }
-        }
-    }
 
-    private void handleOutboundMessages() {
-        //System.out.println("Handling outbound messages.");
-        ChatMessage msg;
-        while(!outboundQueue.isEmpty()){
-            msg = outboundQueue.remove();
-            chatBot.sendMessage(msg.getChannel(), msg.getMessage());
+            } else {
+                return;
+            }
+
         }
     }
 
@@ -155,10 +149,6 @@ public class MainController implements Runnable {
 
             if (!inboundQueue.isEmpty()){
                 handleInboundMessages();
-            }
-
-            if (!outboundQueue.isEmpty()){
-                handleOutboundMessages();
             }
 
             try {

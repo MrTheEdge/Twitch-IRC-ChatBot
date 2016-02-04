@@ -5,10 +5,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 import javafx.collections.transformation.SortedList;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by E.J. Schroeder on 1/7/2016.
@@ -18,9 +15,7 @@ public class MessageHandler {
     private CommandHandler commandHandler;
     private SpamHandler spamHandler;
     private MainController parentController;
-//    private ObservableList<String> activeUsers;
-//    private SortedList<String> sortedActiveUsers;
-    private HashSet<String> uniqueUsers; // Dumb way to make lookups fast and enforce uniqueness
+    private HashSet<String> uniqueUsers; // Need to make lookups fast and enforce uniqueness
     private ArrayList<UserEventListener> _LISTENERS = new ArrayList<>();
 
     public MessageHandler(CommandHandler ch, SpamHandler sh){
@@ -28,26 +23,27 @@ public class MessageHandler {
         this.spamHandler = sh;
 
         this.commandHandler.setParentMessageHandler(this);
-//        activeUsers = FXCollections.observableArrayList();
-//        sortedActiveUsers = new SortedList<String>(activeUsers);
         uniqueUsers = new HashSet<>();
-
-
     }
 
-    public ChatMessage handle(ChatMessage c){
+    public Optional handle(ChatMessage c){
 
         if (!uniqueUsers.contains(c.getSender())){
             uniqueUsers.add(c.getSender());
             fireUserEvent(c.getSender());
         }
 
+        ChatMessage outMessage;
+
         if (c.getMessage().startsWith("!")){
-            return commandHandler.parse(c);
+            outMessage = commandHandler.parse(c);
         } else if (spamHandler.checkMessage(c.getMessage())) {
-            return new ChatMessage(c.getChannel(), c.getSender(), null, null, null);
+            outMessage = new ChatMessage(c.getChannel(), c.getSender(), null, null, null);
+        } else {
+            outMessage = null;
         }
-        return null; // A null instead of message means nothing was wrong.
+
+        return Optional.ofNullable(outMessage);
     }
 
     public void addListener(UserEventListener evListener){

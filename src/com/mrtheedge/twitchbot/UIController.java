@@ -5,13 +5,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.Map;
 import java.util.ResourceBundle;
-
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.*;
 import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
@@ -22,10 +18,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.*;
 import javafx.scene.image.Image;
 import javafx.scene.text.Text;
-import org.jibble.pircbot.IrcException;
-import org.jibble.pircbot.NickAlreadyInUseException;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeFieldType;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -49,7 +42,7 @@ public class UIController {
     @FXML private CheckBox wordRepetitionCheckBox;
     @FXML private CheckBox capitalLettersCheckBox;
     @FXML private CheckBox blockLinksCheckBox;
-    @FXML private Spinner<Integer> wordLengthSpinner; // Initialize // TODO Create listeners for these
+    @FXML private Spinner<Integer> wordLengthSpinner; // Initialize
     @FXML private Spinner<Integer> repeatWordsSpinner; // Initialize
     @FXML private Spinner<Integer> consecCharSpinner; // Initialize
     @FXML private Spinner<Integer> percentCapsSpinner; // Initialize
@@ -83,7 +76,12 @@ public class UIController {
 
     @FXML
     private void addCommand(ActionEvent event) {
-
+        String cName = commandNameField.getText();
+        char lvl = userLevelDropdown.getSelectionModel().getSelectedItem();
+        String cText = commandTextField.getText();
+        if (!cName.equals("") && !cText.equals("")){
+            cmdHandler.addCommand(new CustomCommand(cName, lvl, cText));
+        }
     }
 
     @FXML
@@ -100,8 +98,8 @@ public class UIController {
             String botName = botNameField.getText();
             String oauth = oAuthKeyField.getText();
             String channel = channelField.getText();
-            // TODO Add error log to log pane
             if (botName.equals("") || oauth.equals("") || channel.equals("") ){
+                addEventToLog("Missing login details. Botname, OAuth, or Channel is missing. The bot was unable to connect.");
                 return;
             } else {
                 //System.out.println(botName + "\n" + oauth + "\n" + channel);
@@ -132,7 +130,10 @@ public class UIController {
 
     @FXML
     private void deleteCommand(ActionEvent event) {
-
+        String cName = commandTableView.getSelectionModel().getSelectedItem().getName();
+        if (!cName.equals("")){
+            cmdHandler.delCommand(cName);
+        }
     }
 
     @FXML
@@ -147,7 +148,6 @@ public class UIController {
     private void saveLogs(ActionEvent event) {
         String text = eventLogText.getText();
         if ( !text.equals("") ){
-            // TODO Do stuff here
             LogWriter.writeLogs(text);
             eventLogText.setText("");
         }
@@ -243,6 +243,8 @@ public class UIController {
         consecCharSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 50, 10));
         percentCapsSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100, 75));
         wordSizeSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 5));
+
+        eventLogText.setWrapText(true);
 
         connectedImg = new Image(getClass().getResource("/connected.png").toString());
         disconnectedImg = new Image(getClass().getResource("/disconnected.png").toString());

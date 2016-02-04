@@ -38,7 +38,6 @@ public class BotGUI extends Application {
 
         stage.setOnCloseRequest( e -> {
             uiController.botShutdown();
-            //TODO Do shutdown stuff here.
         });
 
         stage.show();

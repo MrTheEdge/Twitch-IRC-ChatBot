@@ -12,6 +12,8 @@ import java.nio.file.Path;
 
 /**
  * Created by E.J. Schroeder on 2/2/2016.
+ *
+ * Creates a new log file with a timestamp, writing the data that is passed to it.
  */
 public class LogWriter {
 

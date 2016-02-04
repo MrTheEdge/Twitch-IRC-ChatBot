@@ -2,16 +2,19 @@ package com.mrtheedge.twitchbot;
 
 /**
  * Created by E.J. Schroeder on 9/12/2015.
+ *
+ * Checks strings for characteristics like repeated characters, to many capitals, word length, etc
+ * If they exceed the values that are set, it marks it as spam.
  */
 public class SpamHandler {
 
     // Add check for duplicate messages within a time limit
 
     private int WORD_LENGTH = 15;
-    private int CONSEC_CHARS = 5;
+    private int CONSEC_CHARS = 10;
     private int WORD_REPETITION = 3;
-    private int MIN_WORD_LENGTH = 5; // Only used when determining caps percentage
-    private double PERCENTAGE_CAPS = 0.50;
+    private int MIN_WORD_LENGTH = 10; // Only used when determining caps percentage
+    private double PERCENTAGE_CAPS = 0.75;
 
     private boolean CHECK_WORD_LENGTH = true;
     private boolean CHECK_CONSEC_CHARS = true;
@@ -188,11 +191,3 @@ public class SpamHandler {
     }
 
 }
-
-
-//if (letters[i] === letters[i].toUpperCase()
-//        && letters[i] !== letters[i].toLowerCase()) {
-//        console.log(letters[i] + ": " + true);
-//        } else {
-//        console.log(letters[i] + ": " + false);
-//        }

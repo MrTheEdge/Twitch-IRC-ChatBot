@@ -42,7 +42,7 @@ public class CustomCommand extends TimerTask {
         this.userLevel = prLvl;
         this.response = response;
         useCount = 0;
-        if (response.contains("<target>"))
+        if (response.contains(Constants.targetUser))
             requiresTarget = true;
         else
             requiresTarget = false;
@@ -59,7 +59,7 @@ public class CustomCommand extends TimerTask {
         }
 
         if ( this.requiresTargetParam() && target == null ){ // TODO FIX THIS ATROCIOUS CODE
-            return new ChatMessage("#" + channel, null, null, null, "This command requires a target user parameter.");
+            return new ChatMessage("#" + channel, null, null, null, "This command requires a target.");
         }
 
         this.useCount++;
@@ -67,8 +67,11 @@ public class CustomCommand extends TimerTask {
 
         modifiedResponse = modifiedResponse.replaceAll(Constants.userVar, sender);
         modifiedResponse = modifiedResponse.replaceAll(Constants.targetUser, target);
-        modifiedResponse = modifiedResponse.replaceAll(Constants.uptimeVar, Uptime.getUptime(channel));
         modifiedResponse = modifiedResponse.replaceAll(Constants.useCountVar, String.valueOf(useCount));
+
+        if (modifiedResponse.contains(Constants.uptimeVar)){ // Separate block for API calls so they aren't called every time
+            modifiedResponse = modifiedResponse.replaceAll(Constants.uptimeVar, Uptime.getUptime(channel));
+        }
 
         return new ChatMessage("#" + channel, null, null, null, modifiedResponse);
     }
@@ -90,12 +93,12 @@ public class CustomCommand extends TimerTask {
 
         commandName = splitCmd[0]; // Index 1: Command Name
 
-        if ( splitCmd[1].contains("userlvl=") ){ // Command has optional userlvl requirements
+        if ( splitCmd[1].startsWith("-") ){ // Command has optional userlvl requirements
 
-            try { // TODO Check for <target> somewhere in here, set flag to true
-                userLevel = splitCmd[1].charAt(8);
-                if (userLevel != 'a' && userLevel != 'm') // Incorect value for userlvl
-                    throw new IllegalArgumentException();
+            try {
+                userLevel = Character.toUpperCase(splitCmd[1].charAt(1));
+                if (userLevel != Constants.ADMIN && userLevel != Constants.MODERATOR) // Incorect value for userlvl
+                    userLevel = Constants.DEFAULT;
             } catch (IndexOutOfBoundsException ex){
                 throw new IllegalArgumentException();
             }
@@ -119,7 +122,7 @@ public class CustomCommand extends TimerTask {
             }
         }
 
-        if (tempMessage.contains("<target>")) {
+        if (tempMessage.contains(Constants.targetUser)) {
             requiresTarget = true;
         } else {
             requiresTarget = false;

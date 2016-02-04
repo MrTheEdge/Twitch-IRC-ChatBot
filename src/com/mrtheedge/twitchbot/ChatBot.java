@@ -57,7 +57,6 @@ public class ChatBot extends PircBot {
 
     protected void timeoutUser(String user){
         sendMessage(channel, ".timeout " + user + " 1");
-        sendMessage(channel, ".w " + user + " Watch it! That was spam. To much can get you muted or banned!");
     }
 
 }
