@@ -1,11 +1,24 @@
 package com.mrtheedge.twitchbot;
 
+import java.io.Serializable;
 import java.util.TimerTask;
 
 /**
  * Created by E.J. Schroeder on 9/16/2015.
  */
-public class CustomCommand extends TimerTask {
+
+
+
+/*
+
+Method to deserialize generic collection:
+
+Type listType = new TypeToken<ArrayList<YourClass>>() {
+                    }.getType();
+ List<YourClass> yourClassList = new Gson().fromJson(jsonArray, listType);
+
+ */
+public class CustomCommand extends TimerTask implements Serializable {
 
     // TODO Check for any variables.
     // Determine whether an autorun command should be able to have variables.
@@ -23,11 +36,11 @@ public class CustomCommand extends TimerTask {
     protected char userLevel;
     protected String response;
     protected int useCount;
-    protected CommandHandler parentHandler;
+    protected transient CommandHandler parentHandler;
     protected boolean requiresTarget;
 
-    private String scheduledChannel;
-    private String scheduledSender;
+    private transient String scheduledChannel;
+    private transient String scheduledSender;
 
     public CustomCommand(){
         commandName = "default";
@@ -42,7 +55,7 @@ public class CustomCommand extends TimerTask {
         this.userLevel = prLvl;
         this.response = response;
         useCount = 0;
-        if (response.contains(Constants.targetUser))
+        if (response.contains(Constants.TARGET_USER))
             requiresTarget = true;
         else
             requiresTarget = false;
@@ -65,12 +78,12 @@ public class CustomCommand extends TimerTask {
         this.useCount++;
         String modifiedResponse = response;
 
-        modifiedResponse = modifiedResponse.replaceAll(Constants.userVar, sender);
-        modifiedResponse = modifiedResponse.replaceAll(Constants.targetUser, target);
-        modifiedResponse = modifiedResponse.replaceAll(Constants.useCountVar, String.valueOf(useCount));
+        modifiedResponse = modifiedResponse.replaceAll(Constants.USER_VAR, sender);
+        modifiedResponse = modifiedResponse.replaceAll(Constants.TARGET_USER, target);
+        modifiedResponse = modifiedResponse.replaceAll(Constants.USE_COUNT_VAR, String.valueOf(useCount));
 
-        if (modifiedResponse.contains(Constants.uptimeVar)){ // Separate block for API calls so they aren't called every time
-            modifiedResponse = modifiedResponse.replaceAll(Constants.uptimeVar, Uptime.getUptime(channel));
+        if (modifiedResponse.contains(Constants.UPTIME_VAR)){ // Separate block for API calls so they aren't called every time
+            modifiedResponse = modifiedResponse.replaceAll(Constants.UPTIME_VAR, TwitchAPI.getChannelUptime(channel));
         }
 
         return new ChatMessage("#" + channel, null, null, null, modifiedResponse);
@@ -122,7 +135,7 @@ public class CustomCommand extends TimerTask {
             }
         }
 
-        if (tempMessage.contains(Constants.targetUser)) {
+        if (tempMessage.contains(Constants.TARGET_USER)) {
             requiresTarget = true;
         } else {
             requiresTarget = false;

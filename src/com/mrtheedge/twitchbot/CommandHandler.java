@@ -4,10 +4,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Timer;
+import java.util.*;
 
 /**
  * Created by E.J. Schroeder on 9/15/2015.
@@ -17,7 +14,7 @@ public class CommandHandler {
     // TODO Add way to show each commands layout
     // TODO Add help commands
 
-    private ArrayList<String> modList;
+    private Set<String> modList;
     private String channelAdmin;
     private HashMap<String, CustomCommand> customCmdMap;
     private HashMap<String, Timer> scheduledCommands;
@@ -26,7 +23,7 @@ public class CommandHandler {
 
     public CommandHandler() {
         customCmdMap = new HashMap<>();
-        modList = new ArrayList<>();
+        modList = new HashSet<>();
         scheduledCommands = new HashMap<>();
     }
 
@@ -224,7 +221,7 @@ public class CommandHandler {
         modList.remove(user);
     }
 
-    public boolean isMod(String user){
+    public boolean checkMod(String user){
         return (user.equals(getAdmin()) || modList.contains(user));
     }
 

@@ -5,7 +5,7 @@ import java.util.EventObject;
 /**
  * Created by E.J. Schroeder on 2/2/2016.
  */
-public class ChatEvent extends EventObject {
+public class LogEvent extends EventObject {
 
     private String message;
     /**
@@ -14,7 +14,7 @@ public class ChatEvent extends EventObject {
      * @param source The object on which the Event initially occurred.
      * @throws IllegalArgumentException if source is null.
      */
-    public ChatEvent(Object source, String message) {
+    public LogEvent(Object source, String message) {
         super(source);
         this.message = message;
     }

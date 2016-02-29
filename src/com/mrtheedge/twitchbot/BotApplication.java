@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class BotGUI extends Application {
+public class BotApplication extends Application {
 
     private VBox mainPanel;
     private UIController uiController;
@@ -23,12 +23,12 @@ public class BotGUI extends Application {
     public void start(Stage stage) {
 
         try {
-            FXMLLoader fxmlLoader = new FXMLLoader(BotGUI.class.getResource("ui.fxml"));
+            FXMLLoader fxmlLoader = new FXMLLoader(BotApplication.class.getResource("ui.fxml"));
             mainPanel = (VBox) fxmlLoader.load();
             uiController = (UIController) fxmlLoader.getController();
         } catch (IOException e) {
             //e.printStackTrace();
-            Logger.getLogger(BotGUI.class.getName()).log(Level.SEVERE, "Could not load ui.fxml to initialize window");
+            Logger.getLogger(BotApplication.class.getName()).log(Level.SEVERE, "Could not load ui.fxml to initialize window");
         }
 
         Scene scene = new Scene(mainPanel);

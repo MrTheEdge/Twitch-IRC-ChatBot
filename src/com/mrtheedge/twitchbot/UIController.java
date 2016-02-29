@@ -148,7 +148,7 @@ public class UIController {
     private void saveLogs(ActionEvent event) {
         String text = eventLogText.getText();
         if ( !text.equals("") ){
-            LogWriter.writeLogs(text);
+            LogWriter.writeLogsToFile(text);
             eventLogText.setText("");
         }
 

@@ -1,12 +1,15 @@
 package com.mrtheedge.twitchbot;
 
+import java.io.Serializable;
+import java.util.regex.Pattern;
+
 /**
  * Created by E.J. Schroeder on 9/12/2015.
  *
  * Checks strings for characteristics like repeated characters, to many capitals, word length, etc
  * If they exceed the values that are set, it marks it as spam.
  */
-public class SpamHandler {
+public class SpamHandler implements Serializable {
 
     // Add check for duplicate messages within a time limit
 
@@ -15,24 +18,45 @@ public class SpamHandler {
     private int WORD_REPETITION = 3;
     private int MIN_WORD_LENGTH = 10; // Only used when determining caps percentage
     private double PERCENTAGE_CAPS = 0.75;
+    private transient Pattern linkRegex = Pattern.compile("(http(s)?:\\/\\/.)?(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)");
 
     private boolean CHECK_WORD_LENGTH = true;
     private boolean CHECK_CONSEC_CHARS = true;
     private boolean CHECK_WORD_REPETITION = true;
     private boolean CHECK_PERCENTAGE_CAPS = true;
+    private boolean CHECK_LINKS = true;
 
     public SpamHandler(){
-
     }
 
-    public boolean checkMessage(String message){
+    public boolean checkMessage(ChatMessage chatMessage){
 
-        if ( CHECK_WORD_LENGTH && checkWordLength(message) ){ return true;}
-        if ( CHECK_CONSEC_CHARS && checkConsecChars(message) ){ return true; }
-        if ( CHECK_WORD_REPETITION && checkWordRepetition(message) ){ return true; }
-        if ( CHECK_PERCENTAGE_CAPS && checkPercentageCaps(message) ){ return true; }
+        if ( CHECK_WORD_LENGTH && checkWordLength(chatMessage.getMessage()) ){
+            chatMessage.setSpam(SpamType.LENGTH);
+            return true;
+        }
+        if ( CHECK_CONSEC_CHARS && checkConsecChars(chatMessage.getMessage()) ){
+            chatMessage.setSpam(SpamType.CONSEC_CHARS);
+            return true;
+        }
+        if ( CHECK_WORD_REPETITION && checkWordRepetition(chatMessage.getMessage()) ){
+            chatMessage.setSpam(SpamType.REPETITION);
+            return true;
+        }
+        if ( CHECK_PERCENTAGE_CAPS && checkPercentageCaps(chatMessage.getMessage()) ){
+            chatMessage.setSpam(SpamType.CAPS);
+            return true;
+        }
+        if ( CHECK_LINKS && checkForLink(chatMessage.getMessage()) ){
+            chatMessage.setSpam(SpamType.LINK);
+            return true;
+        }
 
         return false;
+    }
+
+    private boolean checkForLink(String message) {
+        return linkRegex.matcher(message).find();
     }
 
     private boolean checkWordLength(String message){

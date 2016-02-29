@@ -1,9 +1,5 @@
 package com.mrtheedge.twitchbot;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.collections.ObservableMap;
-import javafx.collections.transformation.SortedList;
 
 import java.util.*;
 
@@ -26,19 +22,19 @@ public class MessageHandler {
         uniqueUsers = new HashSet<>();
     }
 
-    public Optional handle(ChatMessage c){
+    public Optional handle(ChatMessage chatMessage){
 
-        if (!uniqueUsers.contains(c.getSender())){
-            uniqueUsers.add(c.getSender());
-            fireUserEvent(c.getSender());
+        if (!uniqueUsers.contains(chatMessage.getSender())){
+            uniqueUsers.add(chatMessage.getSender());
+            fireUserEvent(chatMessage.getSender());
         }
 
         ChatMessage outMessage;
 
-        if (c.getMessage().startsWith("!")){
-            outMessage = commandHandler.parse(c);
-        } else if (spamHandler.checkMessage(c.getMessage())) {
-            outMessage = new ChatMessage(c.getChannel(), c.getSender(), null, null, null);
+        if (chatMessage.getMessage().startsWith("!")){
+            outMessage = commandHandler.parse(chatMessage);
+        } else if (spamHandler.checkMessage(chatMessage)) {
+            outMessage = chatMessage; // Return modified CM with correct spam type.
         } else {
             outMessage = null;
         }
@@ -65,7 +61,7 @@ public class MessageHandler {
     }
 
     public void sendMessage(ChatMessage cm){
-        parentController.addOutboundMessage(cm);
+        parentController.sendMessage(cm);
     }
 
     public void setParentController(MainController mc){
@@ -78,6 +74,10 @@ public class MessageHandler {
 
     public void removeMod(String user){
         commandHandler.removeMod(user);
+    }
+
+    public boolean checkMod(String user){
+        return commandHandler.checkMod(user);
     }
 
     public void setAdmin(String user){

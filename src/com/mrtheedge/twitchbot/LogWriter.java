@@ -20,7 +20,7 @@ public class LogWriter {
     // Formatter for filenames with dates
     private static DateTimeFormatter fileDateFormat = DateTimeFormat.forPattern("YYYY-MM-dd_HH-mm-ss");
 
-    public static void writeLogs(String text){
+    public static void writeLogsToFile(String text){
         DateTime time = DateTime.now();
         File logDir = new File("logs"); // Create directory for log files
         logDir.mkdir();

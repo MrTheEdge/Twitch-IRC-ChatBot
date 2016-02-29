@@ -14,8 +14,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class MainController implements Runnable {
 
     private LinkedBlockingQueue<ChatMessage> inboundQueue;
-    private LinkedBlockingQueue<ChatMessage> outboundQueue;
-    private List<ChatEventListener> _LISTENERS = new ArrayList<>();
+    private List<LogEventListener> _LISTENERS = new ArrayList<>();
     private ChatBot chatBot;
     private MessageHandler messageHandler;
     private UIController uiController;
@@ -24,37 +23,28 @@ public class MainController implements Runnable {
 
     public MainController(MessageHandler mh){
         inboundQueue = new LinkedBlockingQueue<>();
-        outboundQueue = new LinkedBlockingQueue<>();
         messageHandler = mh;
         messageHandler.setParentController(this);
     }
 
-    public synchronized void addListener(ChatEventListener listener){
+    public synchronized void addListener(LogEventListener listener){
         _LISTENERS.add(listener);
     }
 
-    public synchronized void removeListener(ChatEventListener listener){
+    public synchronized void removeListener(LogEventListener listener){
         _LISTENERS.remove(listener);
     }
 
     private synchronized void fireEvent(String message){
-        ChatEvent e = new ChatEvent(this, message);
-        for(ChatEventListener listener : _LISTENERS)
-            listener.handleChatEvent(e);
+        LogEvent e = new LogEvent(this, message);
+        for(LogEventListener listener : _LISTENERS)
+            listener.handle(e);
     }
 
     public void addInboundMessage(ChatMessage cm){
         try {
             inboundQueue.put(cm);
         } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void addOutboundMessage(ChatMessage cm){ // TODO Get rid of outbound queue
-        try{
-            outboundQueue.put(cm);
-        } catch (InterruptedException e){
             e.printStackTrace();
         }
     }
@@ -99,9 +89,19 @@ public class MainController implements Runnable {
             if (result.isPresent()){
 
                 msg = (ChatMessage)result.get();
-                if (msg.getMessage() == null){ // Null message means it was spam
-                    chatBot.timeoutUser( msg.getSender() );
-                    fireEvent( msg.getSender() + "'s message was deleted for spam.");
+                if ( msg.isSpam() ){ // Null message means it was spam
+
+                    if (!messageHandler.checkMod( msg.getSender() )){ // Ensure sender is not a mod
+
+                        // Generate a custom spam response for a specific sender and sends a timeout
+                        chatBot.timeoutUser( msg.getSender() );
+                        String spamResponse = msg.getSender() + " -> " + getSpamResponse(msg.getSpamType());
+                        sendMessage(new ChatMessage(msg.getChannel(), null, null, null, spamResponse));
+
+                        // Fire an event for the log.
+                        fireEvent( msg.getSender() + "'s message was deleted for spam (" + msg.getSpamType() + ").");
+                    }
+
                 } else {
                     sendMessage(msg);
                 }
@@ -113,7 +113,26 @@ public class MainController implements Runnable {
         }
     }
 
-    private void sendMessage(ChatMessage cm){
+    private String getSpamResponse(SpamType spamType) {
+
+        switch(spamType){
+
+            case CONSEC_CHARS:
+                return Constants.CONSEC_CHARS_SPAM_RESPONSE;
+            case CAPS:
+                return Constants.CAPS_SPAM_RESPONSE;
+            case REPETITION:
+                return Constants.REPETITION_SPAM_RESPONSE;
+            case LENGTH:
+                return Constants.WORD_LENGTH_SPAM_RESPONSE;
+            case LINK:
+                return Constants.LINK_SPAM_RESPONSE;
+            default:
+                return "Warning: That was spam.";
+        }
+    }
+
+    public void sendMessage(ChatMessage cm){
         chatBot.sendMessage(cm.getChannel(), cm.getMessage());
     }
 

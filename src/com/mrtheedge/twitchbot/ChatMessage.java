@@ -5,13 +5,14 @@ package com.mrtheedge.twitchbot;
  */
 public class ChatMessage {
 
-    private static String prevChannel;
-
     private String sender;
     private String channel;
     private String login;
     private String hostname;
     private String message;
+
+    private boolean isSpam = false;
+    private SpamType spamType;
 
     public ChatMessage(String channel, String sender, String login, String hostname, String message){
         this.channel = channel;
@@ -39,5 +40,38 @@ public class ChatMessage {
 
     public String getMessage() {
         return message;
+    }
+
+    public void setSpam(SpamType type){
+        isSpam = true;
+        spamType = type;
+    }
+
+    public boolean isSpam(){
+        return isSpam;
+    }
+
+    public SpamType getSpamType(){
+        if (isSpam){
+            return spamType;
+        }
+        return null;
+    }
+}
+
+enum SpamType {
+    CONSEC_CHARS("Consecutive Characters"),
+    CAPS("Capital Letters"),
+    REPETITION("Word Repetition"),
+    LENGTH("Word Length"),
+    LINK("Link");
+
+    String description;
+    SpamType(String description){
+        this.description = description;
+    }
+
+    public String toString(){
+        return description;
     }
 }
