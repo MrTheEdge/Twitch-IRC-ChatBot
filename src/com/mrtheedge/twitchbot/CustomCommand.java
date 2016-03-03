@@ -1,5 +1,7 @@
 package com.mrtheedge.twitchbot;
 
+import com.mrtheedge.twitchbot.exceptions.InvalidSyntaxException;
+
 import java.io.Serializable;
 import java.util.TimerTask;
 
@@ -7,28 +9,13 @@ import java.util.TimerTask;
  * Created by E.J. Schroeder on 9/16/2015.
  */
 
-
-
-/*
-
-Method to deserialize generic collection:
-
-Type listType = new TypeToken<ArrayList<YourClass>>() {
-                    }.getType();
- List<YourClass> yourClassList = new Gson().fromJson(jsonArray, listType);
-
- */
-public class CustomCommand extends TimerTask implements Serializable {
-
-    // TODO Check for any variables.
-    // Determine whether an autorun command should be able to have variables.
-    // Add fields for whether command has certain variables
+public class CustomCommand implements Serializable {
 
     /*
-        <command_name> [userlvl=m] <This is what the command will say>
+        <command_name> [-LVL] <This is what the command will say>
         Split command on "space"
         Index 0: Command Name
-        Index 1: User level or command response (Perform Check for userlvl=)
+        Index 1: User level or command response (Perform Check for -LVL)
         Index 2+: Continuation of command response
     */
 
@@ -37,66 +24,39 @@ public class CustomCommand extends TimerTask implements Serializable {
     protected String response;
     protected int useCount;
     protected transient CommandHandler parentHandler;
-    protected boolean requiresTarget;
-
-    private transient String scheduledChannel;
-    private transient String scheduledSender;
+    protected boolean requiresTarget = false;
+    protected boolean requiresSender = false;
 
     public CustomCommand(){
         commandName = "default";
         userLevel = 'd';
         response = "Someone didn't initialize me correctly.";
         useCount = 0;
-        requiresTarget = false;
     }
 
-    public CustomCommand(String name, char prLvl, String response){ // Use with built in commands
+    public CustomCommand(String name, char prLvl, String response){
         this.commandName = name;
         this.userLevel = prLvl;
         this.response = response;
         useCount = 0;
         if (response.contains(Constants.TARGET_USER))
             requiresTarget = true;
-        else
-            requiresTarget = false;
+        if (response.contains(Constants.USER_VAR))
+            requiresSender = true;
+
     }
 
     public CustomCommand(String cmdString) {
         parseCommand(cmdString);
     }
 
-    public ChatMessage callCommand(String sender, String target, String channel){
-
-        if (channel.startsWith("#")){
-            channel = channel.substring(1, channel.length());
-        }
-
-        if ( this.requiresTargetParam() && target == null ){ // TODO FIX THIS ATROCIOUS CODE
-            return new ChatMessage("#" + channel, null, null, null, "This command requires a target.");
-        }
-
-        this.useCount++;
-        String modifiedResponse = response;
-
-        modifiedResponse = modifiedResponse.replaceAll(Constants.USER_VAR, sender);
-        modifiedResponse = modifiedResponse.replaceAll(Constants.TARGET_USER, target);
-        modifiedResponse = modifiedResponse.replaceAll(Constants.USE_COUNT_VAR, String.valueOf(useCount));
-
-        if (modifiedResponse.contains(Constants.UPTIME_VAR)){ // Separate block for API calls so they aren't called every time
-            modifiedResponse = modifiedResponse.replaceAll(Constants.UPTIME_VAR, TwitchAPI.getChannelUptime(channel));
-        }
-
-        return new ChatMessage("#" + channel, null, null, null, modifiedResponse);
-    }
-
-    public void setScheduledChannel(String scheduledChannel) {
-        this.scheduledChannel = scheduledChannel;
-    }
-
-    public void setScheduledSender(String scheduledSender) {
-        this.scheduledSender = scheduledSender;
-    }
-
+    /**
+     * Takes a string directly from the chat, breaks it up and parses it
+     * so that it can be turned into a new CustomCommand.
+     *
+     * @param cmd
+     * @throws IllegalArgumentException
+     */
     private void parseCommand(String cmd) throws IllegalArgumentException {
         String[] splitCmd = cmd.split(" ");
         String tempMessage = "";
@@ -135,39 +95,122 @@ public class CustomCommand extends TimerTask implements Serializable {
             }
         }
 
-        if (tempMessage.contains(Constants.TARGET_USER)) {
+        if (tempMessage.contains(Constants.TARGET_USER))
             requiresTarget = true;
-        } else {
-            requiresTarget = false;
-        }
+        if (tempMessage.contains(Constants.USER_VAR))
+            requiresSender = true;
 
         response = tempMessage;
 
     } // End of: parseCommand(String cmd)
 
-    public void run() { // TODO don't allow commands that need a target
-        // callCommand(sender, target, channel)
-        parentHandler.sendScheduledMessage( callCommand(scheduledSender, null, scheduledChannel) );
+    /**
+     * Takes a sender, target (if required), and the channel to send to.
+     * Replaces variables in the response string with the appropriate values
+     * and then creates a new ChatMessage to be sent out.
+     *
+     * @param sender
+     * @param target
+     * @param channel
+     * @return
+     * @throws InvalidSyntaxException
+     */
+    public ChatMessage callCommand(String sender, String target, String channel) throws InvalidSyntaxException {
+
+        if ( this.requiresTargetParam() && target == null ){
+            throw new InvalidSyntaxException("Command requires target parameter");
+        }
+
+        String modifiedResponse = response;
+
+        modifiedResponse = modifiedResponse.replaceAll(Constants.USER_VAR, sender);
+        modifiedResponse = modifiedResponse.replaceAll(Constants.TARGET_USER, target);
+        modifiedResponse = modifiedResponse.replaceAll(Constants.USE_COUNT_VAR, String.valueOf(useCount));
+
+        if (modifiedResponse.contains(Constants.UPTIME_VAR)){ // Separate block for API calls so they aren't called every time
+            modifiedResponse = modifiedResponse.replaceAll(Constants.UPTIME_VAR, TwitchAPI.getChannelUptime(channel));
+        }
+
+        useCount++;
+        return new ChatMessage(channel, null, null, null, modifiedResponse);
     }
 
+    /**
+     * Returns a new instance of TimerTask for the specific
+     * command.
+     *
+     * @return
+     * @throws InvalidSyntaxException If the command contains variables that don't make sense in a repeated command.
+     */
+    public TimerTask getNewTimerTask() throws InvalidSyntaxException {
+        if (requiresTarget || requiresSender)
+            throw new InvalidSyntaxException("Commands with <user> or <target> cannot be scheduled");
+        return new TimerTask(){
+            @Override
+            public void run() {
+                try {
+                    parentHandler.sendScheduledMessage(callCommand(null, null, parentHandler.getChannel()));
+                } catch (InvalidSyntaxException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+    }
+
+    /**
+     * Returns the name of the command used to call it within the chat
+     *
+     * @return
+     */
     public String getName(){
         return commandName;
     }
 
+    /**
+     * Returns a char that represents the required level of user to call the command
+     *  A - Admin
+     *  M - Mod
+     *  D - Default
+     *
+     * @return
+     */
     public char getReqLevel(){
         return userLevel;
     }
 
+    /**
+     * Returns the string that determines what the command will respond with
+     * when called from the chat.
+     *
+     * @return
+     */
     public String getResponse() { return response; }
 
+    /**
+     * Returns the number of times this command has been called.
+     *
+     * @return
+     */
     public int getUseCount(){
         return useCount;
     }
 
+    /**
+     * Returns true if the command requires a target parameter to be supplied
+     * when it is called.
+     *
+     * @return
+     */
     public boolean requiresTargetParam(){
         return requiresTarget;
     }
 
+    /**
+     * Sets the parent command handler which allows the command to
+     * send itself directly in the case of it being scheduled.
+     *
+     * @param ch
+     */
     public void setParentHandler(CommandHandler ch) {
         parentHandler = ch;
     }

@@ -1,6 +1,10 @@
 package com.mrtheedge.twitchbot;
 
 
+import com.mrtheedge.twitchbot.exceptions.ParsingException;
+import com.mrtheedge.twitchbot.event.UserEvent;
+import com.mrtheedge.twitchbot.event.UserEventListener;
+
 import java.util.*;
 
 /**
@@ -32,7 +36,12 @@ public class MessageHandler {
         ChatMessage outMessage;
 
         if (chatMessage.getMessage().startsWith("!")){
-            outMessage = commandHandler.parse(chatMessage);
+
+            try {
+                outMessage = commandHandler.parse(chatMessage);
+            } catch (ParsingException e) { // TODO Eventually expand to account for individual exceptions
+                outMessage = null;
+            }
         } else if (spamHandler.checkMessage(chatMessage)) {
             outMessage = chatMessage; // Return modified CM with correct spam type.
         } else {
@@ -54,6 +63,14 @@ public class MessageHandler {
         for (UserEventListener ev : _LISTENERS){
             ev.handle(new UserEvent(this, user));
         }
+    }
+
+    public SpamHandler getSpamHandler(){
+        return spamHandler;
+    }
+
+    public CommandHandler getCommandHandler(){
+        return commandHandler;
     }
 
     public void shutdown(){
@@ -83,5 +100,6 @@ public class MessageHandler {
     public void setAdmin(String user){
         commandHandler.setAdmin(user);
     }
+
 
 }

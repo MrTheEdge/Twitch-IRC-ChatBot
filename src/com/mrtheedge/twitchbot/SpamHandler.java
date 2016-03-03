@@ -14,10 +14,10 @@ public class SpamHandler implements Serializable {
     // Add check for duplicate messages within a time limit
 
     private int WORD_LENGTH = 15;
-    private int CONSEC_CHARS = 10;
-    private int WORD_REPETITION = 3;
-    private int MIN_WORD_LENGTH = 10; // Only used when determining caps percentage
-    private double PERCENTAGE_CAPS = 0.75;
+    private int CONSEC_CHARS = 15;
+    private int WORD_REPETITION = 5;
+    private int MIN_WORD_LENGTH = 8; // Only used when determining caps percentage
+    private double PERCENTAGE_CAPS = 0.70;
     private transient Pattern linkRegex = Pattern.compile("(http(s)?:\\/\\/.)?(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)");
 
     private boolean CHECK_WORD_LENGTH = true;
@@ -198,6 +198,26 @@ public class SpamHandler implements Serializable {
         return WORD_LENGTH;
     }
 
+    public boolean getCheckWordLength() {
+        return CHECK_WORD_LENGTH;
+    }
+
+    public boolean getCheckConsecChars() {
+        return CHECK_CONSEC_CHARS;
+    }
+
+    public boolean getCheckWordRepetition() {
+        return CHECK_WORD_REPETITION;
+    }
+
+    public boolean getCheckPercentageCaps() {
+        return CHECK_PERCENTAGE_CAPS;
+    }
+
+    public boolean getCheckLinks() {
+        return CHECK_LINKS;
+    }
+
     public void setCheckWordLength(boolean checkWordLength) {
         this.CHECK_WORD_LENGTH = checkWordLength;
     }
@@ -214,4 +234,16 @@ public class SpamHandler implements Serializable {
         this.CHECK_PERCENTAGE_CAPS = checkPercentageCaps;
     }
 
+    public void transferSettings(SpamHandler sh) {
+        this.WORD_LENGTH = sh.getWordLength();
+        this.CONSEC_CHARS = sh.getConsecChars();
+        this.WORD_REPETITION = sh.getWordRepetition();
+        this.MIN_WORD_LENGTH = sh.getMinWordLength();
+        this.PERCENTAGE_CAPS = sh.getPercentageCaps();
+        this.CHECK_WORD_LENGTH = sh.getCheckWordLength();
+        this.CHECK_CONSEC_CHARS = sh.getCheckConsecChars();
+        this.CHECK_WORD_REPETITION = sh.getCheckWordRepetition();
+        this.CHECK_PERCENTAGE_CAPS = sh.getCheckPercentageCaps();
+        this.CHECK_LINKS = sh.getCheckLinks();
+    }
 }

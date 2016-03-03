@@ -1,4 +1,6 @@
-package com.mrtheedge.twitchbot;
+package com.mrtheedge.twitchbot.event;
+
+import com.mrtheedge.twitchbot.CustomCommand;
 
 import java.util.EventObject;
 

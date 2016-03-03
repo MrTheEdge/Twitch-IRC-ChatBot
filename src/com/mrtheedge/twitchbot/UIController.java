@@ -6,6 +6,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ResourceBundle;
+
+import com.mrtheedge.twitchbot.event.CommandEvent;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.*;
@@ -193,12 +195,74 @@ public class UIController {
 
     public void botShutdown(){
         botDisconnect(null);
+        saveData();
+    }
+
+    private void saveData() {
+        BotDataFile saveData = new BotDataFile();
+
+        String botName = botNameField.getText();
+        String OAuthToken = oAuthKeyField.getText();
+        String channelName = channelField.getText();
+
+        saveData.addSpamHandler( spamHandler )
+                .addCommandList( cmdHandler.getCommandsAsList() )
+                .addLoginData(botName, OAuthToken, channelName)
+                .write();
     }
 
     private void addEventToLog(String message){
         // Create a new timestamp and add it to the log with message
         String time = "[" + timeFormat.print(DateTime.now()) + "] ";
         eventLogText.appendText(time + message + "\n");
+    }
+
+    private void loadData() {
+        BotDataFile loadData = new BotDataFile();
+
+        try {
+            loadData.read();
+        } catch (IOException e) {
+            // Unable to read or find the file
+            // Create a new one on close.
+        }
+
+        if (loadData.getSpamHandler().isPresent()){
+            spamHandler.transferSettings(loadData.getSpamHandler().get());
+
+        }
+        if (loadData.getCommandList().isPresent()){
+            // Add each new command to the map in cmdHandler
+            for (CustomCommand c : loadData.getCommandList().get()){
+                cmdHandler.addCommand(c);
+            }
+        }
+        if (loadData.getBotName().isPresent()){
+            botNameField.setText(loadData.getBotName().get());
+        }
+        if (loadData.getOauth().isPresent()){
+            oAuthKeyField.setText(loadData.getOauth().get());
+        }
+        if (loadData.getChannelName().isPresent()){
+            channelField.setText(loadData.getChannelName().get());
+        }
+    }
+
+    private void updateSpamOptions() {
+
+        consecCharSpinner.getValueFactory().setValue(spamHandler.getConsecChars());
+        wordLengthSpinner.getValueFactory().setValue(spamHandler.getWordLength());
+        wordSizeSpinner.getValueFactory().setValue(spamHandler.getMinWordLength());
+        repeatWordsSpinner.getValueFactory().setValue(spamHandler.getWordRepetition());
+        percentCapsSpinner.getValueFactory().setValue((int)(spamHandler.getPercentageCaps() * 100));
+
+        blockLinksCheckBox.setSelected(spamHandler.getCheckLinks());
+        capitalLettersCheckBox.setSelected(spamHandler.getCheckPercentageCaps());
+        consecCharsCheckBox.setSelected(spamHandler.getCheckConsecChars());
+        wordLengthCheckBox.setSelected(spamHandler.getCheckWordLength());
+        wordRepetitionCheckBox.setSelected(spamHandler.getCheckWordRepetition());
+
+
     }
 
     @FXML
@@ -251,6 +315,12 @@ public class UIController {
 
         connectedImage.setImage(disconnectedImg);
 
+        activeUsers = FXCollections.observableArrayList();
+        commandList = FXCollections.observableArrayList();
+        sortedActiveUsers = new SortedList<>(activeUsers);
+        usersListView.setItems(sortedActiveUsers);
+        usersListView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+
         sourceLink.setOnAction(e -> {
             if(Desktop.isDesktopSupported())
             {
@@ -278,27 +348,16 @@ public class UIController {
         });
 
         // TODO Make all this ugliness more modular. This is atrocious.
-        spamHandler = new SpamHandler();
         cmdHandler = new CommandHandler();
+        spamHandler = new SpamHandler();
         messageHandler = new MessageHandler(cmdHandler, spamHandler);
         botController = new MainController(messageHandler);
         chatBot = new ChatBot(botController);
         botController.setChatBot(chatBot);
 
-        activeUsers = FXCollections.observableArrayList();
-        sortedActiveUsers = new SortedList<>(activeUsers);
-        usersListView.setItems(sortedActiveUsers);
-        usersListView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+        messageHandler.addListener(e -> activeUsers.add(e.getUser()));
 
-        messageHandler.addListener(e -> {
-            activeUsers.add(e.getUser());
-        });
-
-        botController.addListener( e -> {
-            addEventToLog(e.getMessage());
-        });
-
-        commandList = FXCollections.observableArrayList();
+        botController.addListener( e -> addEventToLog(e.getMessage()) );
 
         cmdHandler.addListener(e -> {
             if (e.getType() == CommandEvent.ADD){
@@ -310,11 +369,15 @@ public class UIController {
 
         // Value factories for the data from each CustomCommand. Name/User Level/Response
         cmdNameTableCol.setCellValueFactory( c -> new SimpleStringProperty(c.getValue().getName()) );
-        cmdLvlTableCol.setCellValueFactory( c -> new SimpleObjectProperty<Character>( Character.toUpperCase(c.getValue().getReqLevel()) ));
+        cmdLvlTableCol.setCellValueFactory( c -> new SimpleObjectProperty<>( Character.toUpperCase(c.getValue().getReqLevel()) ));
         cmdTextTableCol.setCellValueFactory( c -> new SimpleStringProperty(c.getValue().getResponse()));
         commandTableView.setItems(commandList);
         commandTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
 
+        // Load preferences from file here...
+
+        loadData();
+        updateSpamOptions();
 
         repeatWordsSpinner.valueProperty().addListener((observable, oldValue, newValue) -> {
             spamHandler.setWordRepetition(newValue);
@@ -332,7 +395,6 @@ public class UIController {
             spamHandler.setMinWordLength(newValue);
         });
 
-
-
     }
+
 }

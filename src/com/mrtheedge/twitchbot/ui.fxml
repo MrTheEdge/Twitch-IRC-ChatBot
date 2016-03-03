@@ -127,7 +127,7 @@
                               <CheckBox fx:id="consecCharsCheckBox" mnemonicParsing="false" onAction="#toggleSpamConsecChars" selected="true" text="Consecutive Characters" GridPane.columnIndex="1" GridPane.halignment="LEFT" GridPane.valignment="CENTER" />
                               <CheckBox fx:id="wordRepetitionCheckBox" mnemonicParsing="false" onAction="#toggleSpamWordRepetition" selected="true" text="Word Repetition" GridPane.halignment="LEFT" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
                               <CheckBox fx:id="capitalLettersCheckBox" mnemonicParsing="false" onAction="#toggleSpamCaps" selected="true" text="Capital Letters" GridPane.columnIndex="1" GridPane.halignment="LEFT" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
-                              <CheckBox fx:id="blockLinksCheckBox" disable="true" mnemonicParsing="false" text="Block Links" GridPane.rowIndex="2" />
+                              <CheckBox fx:id="blockLinksCheckBox" disable="false" mnemonicParsing="false" text="Block Links" GridPane.rowIndex="2" />
                            </children>
                            <padding>
                               <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />

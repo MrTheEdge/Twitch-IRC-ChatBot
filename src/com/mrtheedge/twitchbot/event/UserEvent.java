@@ -1,4 +1,4 @@
-package com.mrtheedge.twitchbot;
+package com.mrtheedge.twitchbot.event;
 
 import java.util.EventObject;
 

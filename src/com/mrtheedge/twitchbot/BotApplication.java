@@ -38,6 +38,7 @@ public class BotApplication extends Application {
 
         stage.setOnCloseRequest( e -> {
             uiController.botShutdown();
+            System.exit(0);
         });
 
         stage.show();

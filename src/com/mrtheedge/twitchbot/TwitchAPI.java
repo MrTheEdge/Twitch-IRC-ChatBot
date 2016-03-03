@@ -24,7 +24,7 @@ public class TwitchAPI {
         if (channel.startsWith("#"))
             channel = channel.substring(1);
 
-        String url = JSON_URL + channel;
+        String url = JSON_URL + channel + "?client_id=" + Constants.CLIENT_ID;
 
         String jsonResponse = readUrl(url);
         TwitchAPIResponse response = gson.fromJson(jsonResponse, TwitchAPIResponse.class);
@@ -38,11 +38,11 @@ public class TwitchAPI {
         try {
             resp = getStreamData(channel);
         } catch (IOException e) {
-            return "Unable to fetch channel data.";
+            return "[Error Fetching Data]";
         }
 
         if (resp.getStreamInfo() == null)
-            return "Stream is not live.";
+            return "[Not Live]";
 
         String createdAt = resp.getStreamInfo().getCreatedAt();
 

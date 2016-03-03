@@ -1,5 +1,7 @@
 package com.mrtheedge.twitchbot;
 
+import com.mrtheedge.twitchbot.event.LogEvent;
+import com.mrtheedge.twitchbot.event.LogEventListener;
 import org.jibble.pircbot.IrcException;
 
 import java.io.IOException;
@@ -17,7 +19,6 @@ public class MainController implements Runnable {
     private List<LogEventListener> _LISTENERS = new ArrayList<>();
     private ChatBot chatBot;
     private MessageHandler messageHandler;
-    private UIController uiController;
     private Thread mainControllerThread;
     private volatile boolean RUNNING = true;
 
@@ -99,7 +100,7 @@ public class MainController implements Runnable {
                         sendMessage(new ChatMessage(msg.getChannel(), null, null, null, spamResponse));
 
                         // Fire an event for the log.
-                        fireEvent( msg.getSender() + "'s message was deleted for spam (" + msg.getSpamType() + ").");
+                        fireEvent( msg.getSender() + "'s message was deleted for spam (" + msg.getSpamType() + "). " + msg.getMessage());
                     }
 
                 } else {
@@ -161,14 +162,14 @@ public class MainController implements Runnable {
 
     }
 
+
     @Override
     public void run() {
 
         while(RUNNING){
 
-            if (!inboundQueue.isEmpty()){
+            if (!inboundQueue.isEmpty())
                 handleInboundMessages();
-            }
 
             try {
                 Thread.sleep(10);

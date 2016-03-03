@@ -1,4 +1,4 @@
-package com.mrtheedge.twitchbot;
+package com.mrtheedge.twitchbot.event;
 
 /**
  * Created by E.J. Schroeder on 2/2/2016.
