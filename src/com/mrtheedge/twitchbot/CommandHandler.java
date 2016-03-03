@@ -166,19 +166,13 @@ public class CommandHandler {
      * @param cm
      * @return
      */
-    private ChatMessage parseStopCommand(ChatMessage cm) {
-        if (userHasPermission(cm.getSender(), Constants.ADMIN)){
-            String[] splitCom = cm.getMessage().split(" ");
-            if (scheduledCommands.containsKey(splitCom[1])) {
-                scheduledCommands.get(splitCom[1]).cancel();
-                scheduledCommands.remove(splitCom[1]);
-                return new ChatMessage(cm.getChannel(), null, null, null, "Scheduled commands have been stopped.");
-            } else {
-                return new ChatMessage(cm.getChannel(), null, null, null, "Command is not running");
-            }
-        } else {
-            return new ChatMessage(cm.getChannel(), null, null, null, "You don't have permission to stop a scheduled command.");
-        }
+    private ChatMessage parseStopCommand(ChatMessage cm) throws NoSuchCommandException, CommandScheduleException, InsufficientPermissionException {
+        if (!userHasPermission(cm.getSender(), Constants.ADMIN))
+            throw new InsufficientPermissionException("User does not have permission to stop scheduled commands");
+
+        String[] splitCom = cm.getMessage().split(" ");
+        stopScheduledCommand(splitCom[1]);
+        return new ChatMessage(cm.getChannel(), null, null, null, "Scheduled commands have been stopped.");
     }
 
     /**
