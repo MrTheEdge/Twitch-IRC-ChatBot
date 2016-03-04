@@ -63,7 +63,7 @@ public class UIController {
     private Image disconnectedImg;
 
     private boolean botIsConnected = false;
-    private MainController botController;
+    private BotController botController;
     private ChatBot chatBot;
     private SpamHandler spamHandler;
     private CommandHandler cmdHandler;
@@ -96,7 +96,7 @@ public class UIController {
 
     @FXML
     private void botConnect(ActionEvent event) {
-        if (!botIsConnected){
+        if (!chatBot.isConnected()){
             String botName = botNameField.getText();
             String oauth = oAuthKeyField.getText();
             String channel = channelField.getText();
@@ -121,12 +121,13 @@ public class UIController {
 
     @FXML
     private void botDisconnect(ActionEvent event) {
-        if (botIsConnected){
-            botController.shutdown();
+        if (chatBot.isConnected()){
+            botController.disconnect();
 
             botIsConnected = false;
             connectedImage.setImage(disconnectedImg);
             connectedText.setText("Not Connected");
+
         }
     }
 
@@ -134,7 +135,7 @@ public class UIController {
     private void deleteCommand(ActionEvent event) {
         String cName = commandTableView.getSelectionModel().getSelectedItem().getName();
         if (!cName.equals("")){
-            cmdHandler.delCommand(cName);
+            cmdHandler.deleteCommand(cName);
         }
     }
 
@@ -194,7 +195,7 @@ public class UIController {
     }
 
     public void botShutdown(){
-        botDisconnect(null);
+        botController.shutdown();
         saveData();
     }
 
@@ -351,7 +352,7 @@ public class UIController {
         cmdHandler = new CommandHandler();
         spamHandler = new SpamHandler();
         messageHandler = new MessageHandler(cmdHandler, spamHandler);
-        botController = new MainController(messageHandler);
+        botController = new BotController(messageHandler);
         chatBot = new ChatBot(botController);
         botController.setChatBot(chatBot);
 

@@ -7,13 +7,13 @@ import org.jibble.pircbot.PircBot;
  */
 public class ChatBot extends PircBot {
 
-    private MainController mainController;
+    private BotController botController;
     private boolean _DEBUG = true;
     private String channel;
 
 
-    public ChatBot (MainController mainController){
-        this.mainController = mainController;
+    public ChatBot (BotController botController){
+        this.botController = botController;
     }
 
     public void setBotname(String botname){
@@ -38,7 +38,7 @@ public class ChatBot extends PircBot {
 
     protected void onMessage(String channel, String sender, String login, String hostname, String message) {
 
-        mainController.addInboundMessage( new ChatMessage(channel, sender, login, hostname, message) );
+        botController.addInboundMessage( new ChatMessage(channel, sender, login, hostname, message) );
 
     }
 
@@ -48,9 +48,9 @@ public class ChatBot extends PircBot {
         String[] modeChange = mode.split(" ");
         if (modeChange.length == 3){
             if (modeChange[1].equals("+o")){
-                mainController.addMod( modeChange[2].trim() );
+                botController.addMod( modeChange[2].trim() );
             } else if (modeChange[1].equals("-o")){
-                mainController.removeMod( modeChange[2].trim() );
+                botController.removeMod( modeChange[2].trim() );
             }
         }
     }

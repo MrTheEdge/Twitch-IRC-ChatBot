@@ -34,6 +34,13 @@ public class CustomCommand implements Serializable {
         useCount = 0;
     }
 
+    /**
+     * Alternate way to create a command if nothing needs to be parsed first.
+     *
+     * @param name
+     * @param prLvl
+     * @param response
+     */
     public CustomCommand(String name, char prLvl, String response){
         this.commandName = name;
         this.userLevel = prLvl;
@@ -46,7 +53,7 @@ public class CustomCommand implements Serializable {
 
     }
 
-    public CustomCommand(String cmdString) {
+    public CustomCommand(String cmdString) throws InvalidSyntaxException {
         parseCommand(cmdString);
     }
 
@@ -57,42 +64,75 @@ public class CustomCommand implements Serializable {
      * @param cmd
      * @throws IllegalArgumentException
      */
-    private void parseCommand(String cmd) throws IllegalArgumentException {
-        String[] splitCmd = cmd.split(" ");
-        String tempMessage = "";
+    private void parseCommand(String cmd) throws InvalidSyntaxException {
+        /*
+            splitMessage[0] -> command name
+            splitMessage[1] -> permission level || beginning of command
+            splitMessage[2] -> beginning of command || continuation of command
+            splitMessage[3...] -> Rest of command
+         */
 
-        if ( splitCmd.length < 2) // Command doesn't supply required arguments
-            throw new IllegalArgumentException();
+        if (cmd.startsWith("!")) // If command is passed in with !, trim it
+            cmd = cmd.substring(1);
 
-        commandName = splitCmd[0]; // Index 1: Command Name
+        String[] splitMessage = cmd.split(" ");
 
-        if ( splitCmd[1].startsWith("-") ){ // Command has optional userlvl requirements
+        if ( splitMessage.length < 2) // Command doesn't supply required arguments
+            throw new InvalidSyntaxException("Not enough arguments to create a command.");
 
-            try {
-                userLevel = Character.toUpperCase(splitCmd[1].charAt(1));
-                if (userLevel != Constants.ADMIN && userLevel != Constants.MODERATOR) // Incorect value for userlvl
-                    userLevel = Constants.DEFAULT;
-            } catch (IndexOutOfBoundsException ex){
-                throw new IllegalArgumentException();
-            }
+        commandName = splitMessage[0]; // Index 0: Command Name
 
-            if (splitCmd.length < 3)
-                throw new IllegalArgumentException();
+        if ( splitMessage[1].startsWith("-") ){ // Command has optional userlvl parameters
 
-            for (int i = 2; i < splitCmd.length; i++){ // Start from index after userlvl arg
-                if (i == splitCmd.length-1)
-                    tempMessage += splitCmd[i];
-                else
-                    tempMessage += splitCmd[i] + " ";
-            }
+            if (splitMessage.length < 3)
+                throw new InvalidSyntaxException("No response given for command");
+
+            setUserLevel(splitMessage[1]);
+            finalizeResponseString(splitMessage, 2);
+
         } else { // Command can be used by everyone
-            userLevel = 'd';
-            for (int i = 1; i < splitCmd.length; i++){ // Start from index after commandName arg
-                if (i == splitCmd.length-1)
-                    tempMessage += splitCmd[i];
-                else
-                    tempMessage += splitCmd[i] + " ";
-            }
+            userLevel = 'D';
+            finalizeResponseString(splitMessage, 1);
+        }
+    } // End of: parseCommand(String cmd)
+
+    /**
+     * Takes a string in the format "-M" (presumably) and sets the appropriate user
+     * level required to call this command. If the string does not follow the format
+     * an InvalidSyntaxException is thrown. User level defaults to D (default) if the
+     * string is formatted correctly but incorrect identifier is given.
+     *
+     * @param strToParse
+     * @throws InvalidSyntaxException
+     */
+    private void setUserLevel(String strToParse) throws InvalidSyntaxException {
+        try {
+
+            userLevel = Character.toUpperCase(strToParse.charAt(1));
+            if (userLevel != Constants.ADMIN && userLevel != Constants.MODERATOR) // Incorect value for userlvl
+                userLevel = Constants.DEFAULT;
+
+        } catch (IndexOutOfBoundsException ex){
+            throw new InvalidSyntaxException("Invalid use of user level flag. Correct use: -M");
+        }
+    }
+
+    /**
+     * Takes an array of strings that were previously split on space, and an index
+     * to start at. Reassembles the split string into one string that is then stored
+     * as the command response whenever it is called. Also sets flags for the command
+     * if it uses any variables that prevent it from being scheduled.
+     *
+     * @param splitMessage
+     * @param startIndex
+     */
+    private void finalizeResponseString(String[] splitMessage, int startIndex){
+        String tempMessage = "";
+        for (int i = startIndex; i < splitMessage.length; i++){
+            if (i == splitMessage.length-1)
+                tempMessage += splitMessage[i];
+            else
+                tempMessage += splitMessage[i] + " ";
         }
 
         if (tempMessage.contains(Constants.TARGET_USER))
@@ -102,7 +142,7 @@ public class CustomCommand implements Serializable {
 
         response = tempMessage;
 
-    } // End of: parseCommand(String cmd)
+    }
 
     /**
      * Takes a sender, target (if required), and the channel to send to.
@@ -136,8 +176,8 @@ public class CustomCommand implements Serializable {
     }
 
     /**
-     * Returns a new instance of TimerTask for the specific
-     * command.
+     * Returns a new instance of TimerTask for the specific command. Allows this command
+     * to be scheduled to run on a Timer.
      *
      * @return
      * @throws InvalidSyntaxException If the command contains variables that don't make sense in a repeated command.
@@ -145,6 +185,7 @@ public class CustomCommand implements Serializable {
     public TimerTask getNewTimerTask() throws InvalidSyntaxException {
         if (requiresTarget || requiresSender)
             throw new InvalidSyntaxException("Commands with <user> or <target> cannot be scheduled");
+
         return new TimerTask(){
             @Override
             public void run() {

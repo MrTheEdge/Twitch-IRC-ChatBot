@@ -2,6 +2,7 @@ package com.mrtheedge.twitchbot;
 
 import com.mrtheedge.twitchbot.event.LogEvent;
 import com.mrtheedge.twitchbot.event.LogEventListener;
+import com.mrtheedge.twitchbot.exceptions.ParsingException;
 import org.jibble.pircbot.IrcException;
 
 import java.io.IOException;
@@ -13,16 +14,19 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * Created by E.J. Schroeder on 1/7/2016.
  */
-public class MainController implements Runnable {
+public class BotController implements Runnable {
+
+    private ChatBot chatBot;
+    private MessageHandler messageHandler;
 
     private LinkedBlockingQueue<ChatMessage> inboundQueue;
     private List<LogEventListener> _LISTENERS = new ArrayList<>();
-    private ChatBot chatBot;
-    private MessageHandler messageHandler;
+
     private Thread mainControllerThread;
     private volatile boolean RUNNING = true;
+    private boolean hasPreviouslyConnected = false;
 
-    public MainController(MessageHandler mh){
+    public BotController(MessageHandler mh){
         inboundQueue = new LinkedBlockingQueue<>();
         messageHandler = mh;
         messageHandler.setParentController(this);
@@ -68,13 +72,16 @@ public class MainController implements Runnable {
         fireEvent( user + " was removed as a mod");
     }
 
-    public void shutdown(){
-
+    public void disconnect(){
         fireEvent("ChatBot disconnecting from irc.twitch.tv down");
         messageHandler.shutdown();
-
         this.RUNNING = false;
         chatBot.disconnect();
+    }
+
+    public void shutdown(){
+
+        disconnect();
         chatBot.dispose();
 
     }
@@ -85,30 +92,33 @@ public class MainController implements Runnable {
         ChatMessage msg;
         while(!inboundQueue.isEmpty()){
             msg = inboundQueue.remove();
-            result = messageHandler.handle(msg);
 
-            if (result.isPresent()){
+            try {
+                result = messageHandler.handle(msg);
+                handleResultFromParsing(result);
+            } catch (ParsingException e) {
+                e.printStackTrace();
+            }
 
-                msg = (ChatMessage)result.get();
-                if ( msg.isSpam() ){ // Null message means it was spam
+        }
+    }
 
-                    if (!messageHandler.checkMod( msg.getSender() )){ // Ensure sender is not a mod
+    private void handleResultFromParsing(Optional result) {
+        if (result.isPresent()){
 
-                        // Generate a custom spam response for a specific sender and sends a timeout
-                        chatBot.timeoutUser( msg.getSender() );
-                        String spamResponse = msg.getSender() + " -> " + getSpamResponse(msg.getSpamType());
-                        sendMessage(new ChatMessage(msg.getChannel(), null, null, null, spamResponse));
+            ChatMessage msg = (ChatMessage) result.get();
+            if ( msg.isSpam() ){
 
-                        // Fire an event for the log.
-                        fireEvent( msg.getSender() + "'s message was deleted for spam (" + msg.getSpamType() + "). " + msg.getMessage());
-                    }
+                // Generate a custom spam response for a specific sender and sends a timeout
+                chatBot.timeoutUser( msg.getSender() );
+                String spamResponse = msg.getSender() + " -> " + getSpamResponse(msg.getSpamType());
+                sendMessage(new ChatMessage(msg.getChannel(), null, null, null, spamResponse));
 
-                } else {
-                    sendMessage(msg);
-                }
+                // Fire an event for the log.
+                fireEvent( msg.getSender() + "'s message was deleted for spam (" + msg.getSpamType() + "). " + msg.getMessage());
 
             } else {
-                return;
+                sendMessage(msg);
             }
 
         }
@@ -137,28 +147,57 @@ public class MainController implements Runnable {
         chatBot.sendMessage(cm.getChannel(), cm.getMessage());
     }
 
+    private void reconnectToIrc(){
+        try {
+            fireEvent("Reconnecting ChatBot...");
+
+            if (mainControllerThread.isAlive()){
+                fireEvent("Unable to reconnect. Try again later or restart the application.");
+                return;
+            }
+
+            RUNNING = true;
+            mainControllerThread = new Thread(this);
+            mainControllerThread.start();
+            chatBot.reconnect();
+            chatBot.joinChannel(chatBot.getChannel());
+            fireEvent("ChatBot successfully reconnected to channel " + chatBot.getChannel());
+        } catch (IOException e) {
+            fireEvent("Unable to reconnect to irc.twitch.tv.");
+        } catch (IrcException e) {
+            fireEvent("Error while reconnecting to irc.twitch.tv.");
+        }
+    }
+
     public void connectToIrc(String user, String oauth, String channel) {
         fireEvent("Starting ChatBot...");
         if (channel.startsWith("#")){
             channel = channel.substring(1, channel.length());
         }
 
-        chatBot.setBotname(user);
-        chatBot.setChannel("#" + channel);
-        chatBot.setVerbose(true); // TODO Debug flag
-        try {
-            chatBot.connect("irc.twitch.tv", 6667, oauth);
-        } catch (IOException e) {
-            fireEvent("Unable to connect to irc.twitch.tv.");
-        } catch (IrcException e) {
-            fireEvent("Error while connecting to irc.twitch.tv, username or password may be incorrect");
-            e.printStackTrace();
-        }
-        messageHandler.setAdmin(channel);
+        if (hasPreviouslyConnected){
+            reconnectToIrc();
+        } else {
+            chatBot.setBotname(user);
+            chatBot.setChannel("#" + channel);
+            chatBot.setVerbose(true); // TODO Debug flag
+            try {
 
-        mainControllerThread = new Thread(this);
-        mainControllerThread.start();
-        fireEvent( "ChatBot connected to twitch.tv on channel #" + channel);
+                chatBot.connect("irc.twitch.tv", 6667, oauth);
+                messageHandler.setAdmin(channel);
+
+                mainControllerThread = new Thread(this);
+                mainControllerThread.start();
+                hasPreviouslyConnected = true;
+                fireEvent("ChatBot connected to twitch.tv on channel #" + channel);
+
+            } catch (IOException e) {
+                fireEvent("Unable to connect to irc.twitch.tv.");
+            } catch (IrcException e) {
+                fireEvent("Error while connecting to irc.twitch.tv, username or password may be incorrect");
+            }
+
+        }
 
     }
 

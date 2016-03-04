@@ -17,8 +17,6 @@ public class CommandHandler {
 
     // TODO Add way to show each commands layout
     // TODO Add help commands
-    // TODO Finish converting over to exception
-    // TODO Rewrite most parse methods to be more readable
 
     private Set<String> modList;
     private String channelAdmin;
@@ -43,7 +41,8 @@ public class CommandHandler {
      * @return
      * @throws InvalidSyntaxException
      */
-    public ChatMessage parse(ChatMessage chatMessage) throws InvalidSyntaxException, CommandScheduleException, InsufficientPermissionException, NoSuchCommandException {
+    public ChatMessage parse(ChatMessage chatMessage) throws InvalidSyntaxException, CommandScheduleException,
+            InsufficientPermissionException, NoSuchCommandException {
         /*
             Split the command
             Determine which command it is
@@ -87,51 +86,30 @@ public class CommandHandler {
                     // Return callCommand
 
                 } else {
-                    return new ChatMessage(chatMessage.getChannel(), null, null, null, "[Invalid Command]");
+                    throw new NoSuchCommandException("No command with that name: " + prefix);
                 }
         }
-    }
-
-    /**
-     * Sets the parent message handler for this command handler.
-     *
-     * @param mh
-     */
-    public void setParentMessageHandler(MessageHandler mh){
-        this.parentMessageHandler = mh;
-    }
-
-    /**
-     * Utility method for scheduled commands so that they can bypass having to be called.
-     * They can use this method when the Timer calls the next command.
-     *
-     * @param cm
-     */
-    public void sendScheduledMessage(ChatMessage cm){
-        parentMessageHandler.sendMessage(cm);
     }
 
     /**
      * Parses a command that has been determined to be an add command. This will create a new
      * CustomCommand from the data in the message and add it to the collection.
      *
-     * @param cm
+     * @param chatMessage
      * @return
      */
-    private ChatMessage parseAddCommand(ChatMessage cm){
+    private ChatMessage parseAddCommand(ChatMessage chatMessage) throws InvalidSyntaxException, InsufficientPermissionException {
 
-        if (userHasPermission(cm.getSender(), Constants.MODERATOR)){ // Throw exception
-            try {
-                CustomCommand custom = new CustomCommand(cm.getMessage().substring(5, cm.getMessage().length()));
-                //System.out.println(custom.getName());
-                addCommand(custom);
-                return new ChatMessage(cm.getChannel(), null, null, null, "Command added.");
-            } catch (IllegalArgumentException ex){
-                return new ChatMessage(cm.getChannel(), null, null, null, "Error adding command.");
-            }
-        } else {
-            return new ChatMessage(cm.getChannel(), null, null, null, "You don't have permission to add commands.");
-        }
+        if (!userHasPermission(chatMessage.getSender(), Constants.MODERATOR))
+            throw new InsufficientPermissionException("Only moderators or an admin can add a command");
+
+        // Sample message -> !add test This is a new command!
+        //                        ^ starts at index 5
+        String commandString = chatMessage.getMessage().substring(5, chatMessage.getMessage().length());
+        CustomCommand customCommand = new CustomCommand(commandString);
+
+        addCommand(customCommand);
+        return new ChatMessage(chatMessage.getChannel(), null, null, null, "Command added.");
 
     }
 
@@ -143,20 +121,24 @@ public class CommandHandler {
      * @param cm
      * @return
      */
-    private ChatMessage parseDelCommand(ChatMessage cm){
-        String[] cmdArray = cm.getMessage().split(" ");
-        if (userHasPermission(cm.getSender(), Constants.MODERATOR)) { // Throw exception
-            if (commandExists(cmdArray[1])) {
+    private ChatMessage parseDelCommand(ChatMessage cm) throws InsufficientPermissionException, NoSuchCommandException, InvalidSyntaxException {
 
-                delCommand(cmdArray[1]);
-                return new ChatMessage(cm.getChannel(), null, null, null, "Command deleted.");
-            } else {
-                //Return error message
-                return new ChatMessage(cm.getChannel(), null, null, null, "Error deleting command.");
-            }
+        if (!userHasPermission(cm.getSender(), Constants.MODERATOR))
+            throw new InsufficientPermissionException("Only moderators or higher can delete commands.");
+
+        // cmdArray[1] is name of command
+        String[] cmdArray = cm.getMessage().split(" ");
+        if (cmdArray.length < 2)
+            throw new InvalidSyntaxException("!del must supply a parameter. Usage: !del <command>");
+
+        if (commandExists(cmdArray[1])) {
+
+            deleteCommand(cmdArray[1]);
+            return new ChatMessage(cm.getChannel(), null, null, null, "Command deleted.");
         } else {
-            return new ChatMessage(cm.getChannel(), null, null, null, "You don't have permission to delete commands.");
+            throw new NoSuchCommandException("No command to delete with the name: " + cmdArray[1]);
         }
+
     }
 
     /**
@@ -165,12 +147,19 @@ public class CommandHandler {
      *
      * @param cm
      * @return
+     * @throws NoSuchCommandException
+     * @throws CommandScheduleException
+     * @throws InsufficientPermissionException
+     * @throws InvalidSyntaxException
      */
-    private ChatMessage parseStopCommand(ChatMessage cm) throws NoSuchCommandException, CommandScheduleException, InsufficientPermissionException {
+    private ChatMessage parseStopCommand(ChatMessage cm) throws NoSuchCommandException, CommandScheduleException, InsufficientPermissionException, InvalidSyntaxException {
         if (!userHasPermission(cm.getSender(), Constants.ADMIN))
             throw new InsufficientPermissionException("User does not have permission to stop scheduled commands");
 
         String[] splitCom = cm.getMessage().split(" ");
+        if (splitCom.length < 2)
+            throw new InvalidSyntaxException("!stop command requires parameter. Use: !stop <command>");
+
         stopScheduledCommand(splitCom[1]);
         return new ChatMessage(cm.getChannel(), null, null, null, "Scheduled commands have been stopped.");
     }
@@ -179,30 +168,30 @@ public class CommandHandler {
      * Parses a command that has been determined to be a schedule command. This will cause
      * the specified command to run on a timer, without having to be called by a user.
      *
-     * @param cm
+     * @param chatMessage
      * @return
      * @throws InvalidSyntaxException
      * @throws NoSuchCommandException
      * @throws CommandScheduleException
      * @throws InsufficientPermissionException
      */
-    private ChatMessage parseScheduleCommand(ChatMessage cm) throws InvalidSyntaxException, NoSuchCommandException, CommandScheduleException, InsufficientPermissionException {
+    private ChatMessage parseScheduleCommand(ChatMessage chatMessage) throws InvalidSyntaxException, NoSuchCommandException, CommandScheduleException, InsufficientPermissionException {
 
-        if (!userHasPermission(cm.getSender(), Constants.ADMIN))
+        if (!userHasPermission(chatMessage.getSender(), Constants.ADMIN))
             throw new InsufficientPermissionException("User does not have permission to schedule commands");
 
-        String[] splitCom = cm.getMessage().split(" ");
-        if (splitCom.length < 3)
-            throw new InvalidSyntaxException("Error while parsing the command.");
+        String[] splitMessage = chatMessage.getMessage().split(" ");
+        if (splitMessage.length < 3)
+            throw new InvalidSyntaxException("!schedule must have 2 parameters. Usage: !schedule <command> <seconds>");
 
         try { // If time is not able to be parsed from the string
-            int time = Integer.parseInt(splitCom[2]);
-            scheduleCommand(splitCom[1], time);
+            int time = Integer.parseInt(splitMessage[2]);
+            scheduleCommand(splitMessage[1], time);
         } catch (NumberFormatException e){
-            throw new InvalidSyntaxException("Time parameter was invalid.");
+            throw new InvalidSyntaxException("!schedule time parameter was invalid. Usage: !schedule <command> <seconds>");
         }
 
-        return new ChatMessage(cm.getChannel(), null, null, null, "Command scheduled to run.");
+        return new ChatMessage(chatMessage.getChannel(), null, null, null, "Command scheduled to run.");
     }
 
     /**
@@ -264,6 +253,10 @@ public class CommandHandler {
         return customCmdMap.containsKey(cmdName);
     }
 
+    private boolean commandExists(CustomCommand command){
+        return commandExists(command.getName());
+    }
+
     /**
      * Adds a command to the map. Sets the CustomCommands parentHandler
      * and fires an event for the GUI that a command was added.
@@ -272,6 +265,12 @@ public class CommandHandler {
      */
     public void addCommand(CustomCommand command){
         command.setParentHandler(this);
+
+        if (commandExists(command)){ // Command with the same name
+            deleteCommand(command.getName());
+            fireCommandEvent(customCmdMap.get(command.getName()), CommandEvent.DELETE);
+        }
+
         customCmdMap.put(command.getName(), command);
         fireCommandEvent(command, CommandEvent.ADD);
     }
@@ -284,7 +283,7 @@ public class CommandHandler {
      *
      * @param cmdName
      */
-    public void delCommand(String cmdName){
+    public void deleteCommand(String cmdName){
         try {
             stopScheduledCommand(cmdName);
         } catch (NoSuchCommandException e) {
@@ -313,6 +312,16 @@ public class CommandHandler {
         scheduleCommand( customCmdMap.get(command), time );
     }
 
+    /**
+     * Schedules a command for the number of seconds supplied. Can throw an InvalidSyntaxException if the
+     * command contains variables that are not allowed. Can also throw a CommandScheduleException if the
+     * command is already scheduled to run.
+     *
+     * @param command
+     * @param time
+     * @throws CommandScheduleException
+     * @throws InvalidSyntaxException
+     */
     private void scheduleCommand(CustomCommand command, int time) throws CommandScheduleException, InvalidSyntaxException {
         if ( scheduledCommands.containsKey(command.getName()) )
             throw new CommandScheduleException("Command already scheduled.");
@@ -354,6 +363,25 @@ public class CommandHandler {
     }
 
     /**
+     * Sets the parent message handler for this command handler.
+     *
+     * @param mh
+     */
+    public void setParentMessageHandler(MessageHandler mh){
+        this.parentMessageHandler = mh;
+    }
+
+    /**
+     * Utility method for scheduled commands so that they can bypass having to be called.
+     * They can use this method when the Timer calls the next command.
+     *
+     * @param cm
+     */
+    public void sendScheduledMessage(ChatMessage cm){
+        parentMessageHandler.sendMessage(cm);
+    }
+
+    /**
      * Returns a list of all custom commands to be used in
      * saving when the application is closed
      *
@@ -365,6 +393,12 @@ public class CommandHandler {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Sets the channel admin for use in determining command permissions
+     * Also sets the channel based on the admin.
+     *
+     * @param user
+     */
     public void setAdmin(String user){
         channelAdmin = user;
         setChannel("#" + user);
@@ -374,14 +408,31 @@ public class CommandHandler {
         return channelAdmin;
     }
 
+    /**
+     * Adds a user to the mod list. Enables users to call commands
+     * only available for mods.
+     *
+     * @param user
+     */
     public void addMod(String user){
         modList.add(user);
     }
 
+    /**
+     * Removes a user from the mod list.
+     *
+     * @param user
+     */
     public void removeMod(String user){
         modList.remove(user);
     }
 
+    /**
+     * Returns true if the user is either the admin or is a mod.
+     *
+     * @param user
+     * @return
+     */
     public boolean checkMod(String user){
         return (user.equals(getAdmin()) || modList.contains(user));
     }
@@ -394,6 +445,11 @@ public class CommandHandler {
         return channel;
     }
 
+    /**
+     * Stops all scheduled commands and clears them from the
+     * collection.
+     *
+     */
     public void stopAllCommands() {
 
         for(Map.Entry<String, Timer> e : scheduledCommands.entrySet())
