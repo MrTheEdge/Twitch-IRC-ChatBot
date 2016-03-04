@@ -43,13 +43,7 @@ public class CommandHandler {
      */
     public ChatMessage parse(ChatMessage chatMessage) throws InvalidSyntaxException, CommandScheduleException,
             InsufficientPermissionException, NoSuchCommandException {
-        /*
-            Split the command
-            Determine which command it is
-            Psrse the command
-            Call the command
-            Return the command response message
-        */
+
         int prefixIndex = chatMessage.getMessage().indexOf(" ");
         String prefix;
 
@@ -58,7 +52,6 @@ public class CommandHandler {
         } else {
             prefix = chatMessage.getMessage().substring(1, prefixIndex);
         }
-        //System.out.println(prefix);
 
         switch(prefix){
             case Constants.ADD_PREFIX:
@@ -74,20 +67,36 @@ public class CommandHandler {
                 return parseStopCommand(chatMessage);
 
             default:
-                if( commandExists(prefix) ) {
-                    String[] msgArray = chatMessage.getMessage().split(" ");
+                return parseGenericCommand(chatMessage, prefix);
+        }
+    }
 
-                    if (msgArray.length > 1){
-                        return customCmdMap.get(prefix).callCommand(chatMessage.getSender(), msgArray[1], chatMessage.getChannel());
-                    } else {
-                        return customCmdMap.get(prefix).callCommand(chatMessage.getSender(), null, chatMessage.getChannel());
-                    }
+    /**
+     * Parses a command if it not one of the built-in commands. Checks if it
+     * exists and if so, calls the appropriate command. Returns a new ChatMessage
+     * with the response.
+     *
+     * @param chatMessage
+     * @param prefix
+     * @return
+     * @throws InvalidSyntaxException
+     * @throws NoSuchCommandException
+     */
+    private ChatMessage parseGenericCommand(ChatMessage chatMessage, String prefix) throws InvalidSyntaxException, NoSuchCommandException {
 
-                    // Return callCommand
+        if( commandExists(prefix) ) {
+            String[] msgArray = chatMessage.getMessage().split(" ");
 
-                } else {
-                    throw new NoSuchCommandException("No command with that name: " + prefix);
-                }
+            if (msgArray.length > 1){
+                return customCmdMap.get(prefix).callCommand(chatMessage.getSender(), msgArray[1], chatMessage.getChannel());
+            } else {
+                return customCmdMap.get(prefix).callCommand(chatMessage.getSender(), null, chatMessage.getChannel());
+            }
+
+            // Return callCommand
+
+        } else {
+            throw new NoSuchCommandException("No command with that name: " + prefix);
         }
     }
 
