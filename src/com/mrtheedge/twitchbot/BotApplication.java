@@ -5,6 +5,7 @@ package com.mrtheedge.twitchbot;
  */
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.layout.VBox;
@@ -38,6 +39,7 @@ public class BotApplication extends Application {
 
         stage.setOnCloseRequest( e -> {
             uiController.botShutdown();
+            Platform.exit();
             System.exit(0);
         });
 

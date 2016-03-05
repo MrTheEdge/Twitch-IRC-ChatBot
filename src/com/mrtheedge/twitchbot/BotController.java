@@ -82,7 +82,8 @@ public class BotController implements Runnable {
     public void shutdown(){
 
         disconnect();
-        chatBot.dispose();
+        if (hasPreviouslyConnected)
+            chatBot.dispose();
 
     }
 
