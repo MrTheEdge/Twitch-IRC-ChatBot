@@ -49,9 +49,10 @@ public class UIController {
     @FXML private Spinner<Integer> consecCharSpinner; // Initialize
     @FXML private Spinner<Integer> percentCapsSpinner; // Initialize
     @FXML private Spinner<Integer> wordSizeSpinner; // Initialize
-    @FXML private TextField botNameField;
-    @FXML private TextField oAuthKeyField;
     @FXML private TextField channelField;
+    @FXML private Button twitchLoginButton;
+    @FXML private Label loginStatusLabel;
+    @FXML private Button connectButton;
     @FXML private Text aboutText;
     @FXML private Text versionText;
     @FXML private Hyperlink sourceLink;
@@ -97,16 +98,15 @@ public class UIController {
     @FXML
     private void botConnect(ActionEvent event) {
         if (!chatBot.isConnected()){
-            String botName = botNameField.getText();
-            String oauth = oAuthKeyField.getText();
+            //String botName = botNameField.getText();
+            //String oauth = oAuthKeyField.getText();
             String channel = channelField.getText();
-            if (botName.equals("") || oauth.equals("") || channel.equals("") ){
-                addEventToLog("Missing login details. Botname, OAuth, or Channel is missing. The bot was unable to connect.");
-                return;
+            if ( channel.equals("") ){
+                addEventToLog("No channel specified. The bot was unable to connect.");
             } else {
                 //System.out.println(botName + "\n" + oauth + "\n" + channel);
 
-                botController.connectToIrc(botName, oauth, channel);
+                botController.connectToIrc(channel);
 
                 if (chatBot.isConnected()) {
                     botIsConnected = true;
@@ -169,28 +169,28 @@ public class UIController {
     @FXML
     private void toggleSpamCaps(ActionEvent event) {
         CheckBox source = (CheckBox)event.getSource();
-        boolean bool = source.isSelected() ? true : false;
+        boolean bool = source.isSelected();
         spamHandler.setCheckPercentageCaps(bool);
     }
 
     @FXML
     private void toggleSpamConsecChars(ActionEvent event) {
         CheckBox source = (CheckBox)event.getSource();
-        boolean bool = source.isSelected() ? true : false;
+        boolean bool = source.isSelected();
         spamHandler.setCheckConsecChars(bool);
     }
 
     @FXML
     private void toggleSpamWordLength(ActionEvent event) {
         CheckBox source = (CheckBox)event.getSource();
-        boolean bool = source.isSelected() ? true : false;
+        boolean bool = source.isSelected();
         spamHandler.setCheckWordLength(bool);
     }
 
     @FXML
     private void toggleSpamWordRepetition(ActionEvent event) {
         CheckBox source = (CheckBox)event.getSource();
-        boolean bool = source.isSelected() ? true : false;
+        boolean bool = source.isSelected();
         spamHandler.setCheckWordRepetition(bool);
     }
 
@@ -202,13 +202,11 @@ public class UIController {
     private void saveData() {
         BotDataFile saveData = new BotDataFile();
 
-        String botName = botNameField.getText();
-        String OAuthToken = oAuthKeyField.getText();
         String channelName = channelField.getText();
 
         saveData.addSpamHandler( spamHandler )
                 .addCommandList( cmdHandler.getCommandsAsList() )
-                .addLoginData(botName, OAuthToken, channelName)
+                .addLoginData(channelName)
                 .write();
     }
 
@@ -237,12 +235,6 @@ public class UIController {
             for (CustomCommand c : loadData.getCommandList().get()){
                 cmdHandler.addCommand(c);
             }
-        }
-        if (loadData.getBotName().isPresent()){
-            botNameField.setText(loadData.getBotName().get());
-        }
-        if (loadData.getOauth().isPresent()){
-            oAuthKeyField.setText(loadData.getOauth().get());
         }
         if (loadData.getChannelName().isPresent()){
             channelField.setText(loadData.getChannelName().get());
@@ -289,8 +281,7 @@ public class UIController {
         assert consecCharSpinner != null : "fx:id=\"consecCharSpinner\" was not injected: check your FXML file 'ui.fxml'.";
         assert percentCapsSpinner != null : "fx:id=\"percentCapsSpinner\" was not injected: check your FXML file 'ui.fxml'.";
         assert wordSizeSpinner != null : "fx:id=\"wordSizeSpinner\" was not injected: check your FXML file 'ui.fxml'.";
-        assert botNameField != null : "fx:id=\"botNameField\" was not injected: check your FXML file 'ui.fxml'.";
-        assert oAuthKeyField != null : "fx:id=\"oAuthKeyField\" was not injected: check your FXML file 'ui.fxml'.";
+
         assert channelField != null : "fx:id=\"channelField\" was not injected: check your FXML file 'ui.fxml'.";
         assert aboutText != null : "fx:id=\"aboutText\" was not injected: check your FXML file 'ui.fxml'.";
         assert versionText != null : "fx:id=\"versionText\" was not injected: check your FXML file 'ui.fxml'.";
@@ -321,6 +312,11 @@ public class UIController {
         sortedActiveUsers = new SortedList<>(activeUsers);
         usersListView.setItems(sortedActiveUsers);
         usersListView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+
+        ImageView twitchLoginImgView = new ImageView(getClass().getResource("/ConnectWithTwitch.png").toString());
+        twitchLoginButton.setGraphic(twitchLoginImgView);
+
+        loginStatusLabel.setText("");
 
         sourceLink.setOnAction(e -> {
             if(Desktop.isDesktopSupported())
@@ -356,9 +352,13 @@ public class UIController {
         chatBot = new ChatBot(botController);
         botController.setChatBot(chatBot);
 
-        messageHandler.addListener(e -> activeUsers.add(e.getUser()));
+        messageHandler.addListener( e ->
+                activeUsers.add(e.getUser())
+        );
 
-        botController.addListener( e -> addEventToLog(e.getMessage()) );
+        botController.addListener( e ->
+                addEventToLog(e.getMessage())
+        );
 
         cmdHandler.addListener(e -> {
             if (e.getType() == CommandEvent.ADD){
@@ -398,4 +398,21 @@ public class UIController {
 
     }
 
+    public void twitchLoginButtonOnAction(ActionEvent actionEvent) {
+        twitchLoginButton.setDisable(true);                     // Disable the login button until confirmation of success or failure is reported
+        TwitchAuthDialog dialogWindow = new TwitchAuthDialog();
+        dialogWindow.addListener(el -> {
+            if (!el.isSuccessful()){ // Login unsuccessful, allow user to click login again.
+                twitchLoginButton.setDisable(false);
+            } else {
+                botController.setUsername(el.getUsername());
+                botController.setOAuthToken(el.getToken());
+                loginStatusLabel.setText("Logged in as: " + el.getUsername());
+                connectButton.setDisable(false);
+            }
+        });
+
+        dialogWindow.create();
+
+    }
 }

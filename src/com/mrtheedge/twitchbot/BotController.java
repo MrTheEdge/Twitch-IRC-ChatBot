@@ -25,6 +25,9 @@ public class BotController implements Runnable {
     private Thread mainControllerThread;
     private volatile boolean RUNNING = true;
     private boolean hasPreviouslyConnected = false;
+    private boolean _DEBUG = true;
+    private String username;
+    private String oAuthToken;
 
     public BotController(MessageHandler mh){
         inboundQueue = new LinkedBlockingQueue<>();
@@ -170,21 +173,25 @@ public class BotController implements Runnable {
         }
     }
 
-    public void connectToIrc(String user, String oauth, String channel) {
+    public void connectToIrc(String channel) {
         fireEvent("Starting ChatBot...");
         if (channel.startsWith("#")){
             channel = channel.substring(1, channel.length());
+        }
+        if (username == null || oAuthToken == null){
+            fireEvent("Unable to connect, no login information. Please login through Twitch.");
+            return;
         }
 
         if (hasPreviouslyConnected){
             reconnectToIrc();
         } else {
-            chatBot.setBotname(user);
+            chatBot.setBotname(this.username);
             chatBot.setChannel("#" + channel);
-            chatBot.setVerbose(true); // TODO Debug flag
+            if (_DEBUG) chatBot.setVerbose(true);
             try {
 
-                chatBot.connect("irc.twitch.tv", 6667, oauth);
+                chatBot.connect("irc.chat.twitch.tv", 6667, this.oAuthToken);
                 messageHandler.setAdmin(channel);
 
                 mainControllerThread = new Thread(this);
@@ -199,9 +206,22 @@ public class BotController implements Runnable {
             }
 
         }
-
     }
 
+    public void setUsername(String username){
+        this.username = username;
+    }
+
+    public void setOAuthToken(String token){
+        if (!token.startsWith("oauth:"))
+            token = "oauth:" + token;
+
+        this.oAuthToken = token;
+    }
+
+    public void enableDebugMessages(){
+        _DEBUG = true;
+    }
 
     @Override
     public void run() {

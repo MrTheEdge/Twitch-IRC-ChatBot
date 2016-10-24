@@ -31,7 +31,7 @@ public class BotDataFile {
 
 
     public BotDataFile(){
-        gson = new GsonBuilder().setPrettyPrinting().create();
+        gson = new GsonBuilder().create();
         mainJsonObject = new JsonObject();
     }
 
@@ -128,10 +128,8 @@ public class BotDataFile {
 
     }
 
-    public BotDataFile addLoginData(String botName, String oAuthToken, String channelName) {
+    public BotDataFile addLoginData(String channelName) {
 
-        mainJsonObject.addProperty(BOT_NAME, botName);
-        mainJsonObject.addProperty(OAUTH_TOKEN, oAuthToken);
         mainJsonObject.addProperty(CHANNEL_NAME, channelName);
 
         return this;

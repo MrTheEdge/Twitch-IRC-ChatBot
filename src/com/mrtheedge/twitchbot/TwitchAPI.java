@@ -1,6 +1,9 @@
 package com.mrtheedge.twitchbot;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Interval;
@@ -17,34 +20,34 @@ import java.net.URL;
  */
 public class TwitchAPI {
 
-    private static final String JSON_URL = "https://api.twitch.tv/kraken/streams/";
+    private static final String BASE_JSON_URL = "https://api.twitch.tv/kraken";
+    private static final String JSON_STREAM_URL = BASE_JSON_URL + "/streams/";
     private static Gson gson = new Gson();
 
     public static TwitchAPIResponse getStreamData(String channel) throws IOException{
         if (channel.startsWith("#"))
             channel = channel.substring(1);
 
-        String url = JSON_URL + channel + "?client_id=" + Constants.CLIENT_ID;
+        String url = JSON_STREAM_URL + channel + "?client_id=" + Constants.CLIENT_ID;
 
         String jsonResponse = readUrl(url);
-        TwitchAPIResponse response = gson.fromJson(jsonResponse, TwitchAPIResponse.class);
 
-        return response;
+        return gson.fromJson(jsonResponse, TwitchAPIResponse.class);
 
     }
 
     public static String getChannelUptime(String channel){
-        TwitchAPIResponse resp;
+        TwitchAPIResponse apiResponse;
         try {
-            resp = getStreamData(channel);
+            apiResponse = getStreamData(channel);
         } catch (IOException e) {
             return "[Error Fetching Data]";
         }
 
-        if (resp.getStreamInfo() == null)
+        if (apiResponse.getStreamInfo() == null)
             return "[Not Live]";
 
-        String createdAt = resp.getStreamInfo().getCreatedAt();
+        String createdAt = apiResponse.getStreamInfo().getCreatedAt();
 
         long totalMins = dateTimeToMinutes(createdAt);
 
@@ -89,6 +92,26 @@ public class TwitchAPI {
         }
     }
 
+    public static String usernameFromToken(String token){
+        String completeUrl = BASE_JSON_URL + "?oauth_token=" + token;
+        String jsonString;
+        try {
+            jsonString = readUrl(completeUrl);
+        } catch (IOException e) {
+            return ""; // Just return empty string if error
+        }
+        //System.out.println(jsonString);
+        JsonElement rootElement = new JsonParser().parse(jsonString);
+        JsonObject rootObject = rootElement.getAsJsonObject();
+        if (rootObject.has("error")){
+            return ""; // Incorrect token.
+        } else {
+            JsonElement tokenElement = rootObject.get("token");
+            JsonObject tokenObject = tokenElement.getAsJsonObject();
+            String username = tokenObject.get("user_name").toString();
 
+            return username.replaceAll("^\"|\"$", "");
+        }
+    }
 
 }

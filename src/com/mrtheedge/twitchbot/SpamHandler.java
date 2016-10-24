@@ -89,7 +89,7 @@ public class SpamHandler implements Serializable {
                 temp = Character.toLowerCase(message.charAt(i));
                 if ( temp == prevChar){ // check if current char is the same as previous
                     consecCount++;
-                    if (consecCount > CONSEC_CHARS)
+                    if (consecCount >= CONSEC_CHARS)
                         return true;
                 } else {
                     // If no consecutive character is found, reset count to 0
